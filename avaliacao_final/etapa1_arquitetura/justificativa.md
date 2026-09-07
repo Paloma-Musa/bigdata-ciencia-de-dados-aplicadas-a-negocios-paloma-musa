@@ -45,21 +45,37 @@ Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunt
 Para fraude em tempo real, a arquitetura batch seria complementada por um fluxo de streaming. Uma possibilidade é usar Kafka, sugerido como alternaiva anteriormente, para receber eventos e Spark Structured Streaming para processá-los continuamente.
 
 App / Web / POS / ATM
+
           |
+          
           v
+          
        [ Kafka ]
+       
           |
+          
           v
+          
 [ Spark Structured Streaming ]
+
           |
+          
           +----------------------+
+          
           |                      |  
+          
           v                      v 
+          
    Dados Silver/Gold        Motor de risco
+   
                                   |
+                                  
                              +----+----+
+                             
                              |         |
+                             
                              v         v
+                             
                           APROVAR   BLOQUEAR
 
 Nesse cenário, o risco pode ser calculado no momento da transação, permitindo aprovar ou bloquear operações rapidamente. O histórico continua sendo armazenado para auditoria, análises e treinamento de modelos.
