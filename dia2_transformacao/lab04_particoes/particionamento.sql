@@ -1,0 +1,1561 @@
+## Usando a ROTA A — Cluster real (Hive)
+
+### Passo 1 — Criar tabela raw de transactions (se ainda não existe)
+
+```sql
+CREATE EXTERNAL TABLE raw_transactions (
+  transaction_id INT, customer_id INT, amount FLOAT,
+  transaction_type STRING, ts STRING, status STRING,
+  risk_score FLOAT, is_fraud STRING
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+STORED AS TEXTFILE
+LOCATION '/user/bigdata/raw/transactions'
+TBLPROPERTIES ('skip.header.line.count'='1');
+```
+
+-- hive> CREATE EXTERNAL TABLE raw_transactions (
+--   transaction_id INT, customer    > _id INT, amount FLOAT,
+--   transaction_type STRING, ts STRING, status STRING,
+--   risk_score FLOAT, is_fraud STRING    >
+-- )
+-- ROW FORMAT     > DELIMITED FIELDS TERMINATED BY ','
+-- STORED AS TEXT    > FILE    >
+-- LOCATION '/user/bigdata/raw/transactions'
+-- TBLPR    > OPERTIES ('skip.header    > .line.count'='1');
+--     > 2026-09-07 01:11:29,094 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:11:29,190 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907011129_1e4941af-e74d-43bc-95e9-dcf3e2f8cb5f): CREATE EXTERNAL TABLE raw_transactions (
+--   transaction_id INT, customer_id INT, amount FLOAT,
+--   transaction_type STRING, ts STRING, status STRING,
+--   risk_score FLOAT, is_fraud STRING
+-- )
+-- ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+-- STORED AS TEXTFILE
+-- LOCATION '/user/bigdata/raw/transactions'
+-- TBLPROPERTIES ('skip.header.line.count'='1')
+-- 2026-09-07 01:11:29,587 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:11:29,593 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-07 01:11:29,624 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] sqlstd.SQLStdHiveAccessController (SQLStdHiveAccessController.java:<init>(96)) - Created SQLStdHiveAccessController for session context : HiveAuthzSessionContext [sessionString=d719a211-0ddf-4cf5-8385-3f04cb4710d2, clientType=HIVECLI]
+-- 2026-09-07 01:11:29,628 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:setAuthorizerV2Config(950)) - METASTORE_FILTER_HOOK will be ignored, since hive.security.authorization.manager is set to instance of HiveAuthorizerFactory.
+-- 2026-09-07 01:11:29,631 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl to org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook
+-- 2026-09-07 01:11:29,641 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-07 01:11:29,647 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Cleaning up thread local RawStore...
+-- 2026-09-07 01:11:29,648 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:11:29,650 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:11:29,657 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:11:29,658 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:11:29,660 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:11:29,662 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:11:29,663 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:11:29,665 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:11:29,679 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeCreateTable(12993)) - Creating table default.raw_transactions position=22
+-- 2026-09-07 01:11:29,709 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:11:29,710 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:11:29,713 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:11:29,716 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:11:29,717 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:11:29,718 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-07 01:11:29,718 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:11:29,744 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:11:29,753 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+-- 2026-09-07 01:11:29,760 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907011129_1e4941af-e74d-43bc-95e9-dcf3e2f8cb5f); Time taken: 0.601 seconds
+-- 2026-09-07 01:11:29,761 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:11:29,765 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:11:29,766 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907011129_1e4941af-e74d-43bc-95e9-dcf3e2f8cb5f): CREATE EXTERNAL TABLE raw_transactions (
+--   transaction_id INT, customer_id INT, amount FLOAT,
+--   transaction_type STRING, ts STRING, status STRING,
+--   risk_score FLOAT, is_fraud STRING
+-- )
+-- ROW FORMAT DELIMITED FIELDS TERMINATED BY ','
+-- STORED AS TEXTFILE
+-- LOCATION '/user/bigdata/raw/transactions'
+-- TBLPROPERTIES ('skip.header.line.count'='1')
+-- 2026-09-07 01:11:29,787 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:DDL] in serial mode
+-- 2026-09-07 01:11:29,788 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook to org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl
+-- 2026-09-07 01:11:29,789 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-07 01:11:29,789 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Cleaning up thread local RawStore...
+-- 2026-09-07 01:11:29,791 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:11:29,792 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:11:29,873 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:11:29,874 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:11:29,879 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:11:29,882 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:11:29,884 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:11:29,888 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:11:29,890 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: create_table: Table(tableName:raw_transactions, dbName:default, owner:palomamusa, createTime:1788754289, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:ts, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:string, comment:null)], location:hdfs://localhost:9000/user/bigdata/raw/transactions, inputFormat:org.apache.hadoop.mapred.TextInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, parameters:{field.delim=,, serialization.format=,}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[], parameters:{skip.header.line.count=1, EXTERNAL=TRUE, bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:EXTERNAL_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-07 01:11:29,891 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=create_table: Table(tableName:raw_transactions, dbName:default, owner:palomamusa, createTime:1788754289, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:ts, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:string, comment:null)], location:hdfs://localhost:9000/user/bigdata/raw/transactions, inputFormat:org.apache.hadoop.mapred.TextInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, parameters:{field.delim=,, serialization.format=,}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[], parameters:{skip.header.line.count=1, EXTERNAL=TRUE, bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:EXTERNAL_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-07 01:11:29,956 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] utils.MetaStoreUtils (MetaStoreUtils.java:updateTableStatsSlow(703)) - Updating table stats for raw_transactions
+-- 2026-09-07 01:11:29,958 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] utils.MetaStoreUtils (MetaStoreUtils.java:updateTableStatsSlow(705)) - Updated size of table raw_transactions to 7196116
+-- 2026-09-07 01:11:30,166 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907011129_1e4941af-e74d-43bc-95e9-dcf3e2f8cb5f); Time taken: 0.399 seconds
+-- OK
+-- 2026-09-07 01:11:30,168 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:11:30,172 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- Time taken: 1.016 seconds
+-- 2026-09-07 01:11:30,173 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 1.016 seconds
+-- 2026-09-07 01:11:30,174 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:11:30,175 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
+#----------------------------------------------------------------------------------------------------
+### Passo 2 — Criar a tabela particionada
+
+```sql
+CREATE TABLE transactions_particionada (
+  transaction_id INT, customer_id INT, amount FLOAT,
+  transaction_type STRING, status STRING, risk_score FLOAT, is_fraud STRING
+)
+PARTITIONED BY (year INT, month INT)
+STORED AS TEXTFILE;
+```
+-- hive> CREATE TABLE transactions_particionada (
+--   transaction_id INT, customer_id INT, amount FLOAT,
+--   transaction_type STRING, status STRING, risk_score FLOAT, i    > s_fraud STRING
+-- )
+-- PARTITIONED BY (year INT, month INT)
+-- STORED AS TEXTFILE;
+--     >     >     >     > 2026-09-07 01:12:24,135 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:12:24,135 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- 2026-09-07 01:12:24,137 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907011224_e84086d9-e5bd-4ebd-8ef0-5c7b5bc95241): CREATE TABLE transactions_particionada (
+--   transaction_id INT, customer_id INT, amount FLOAT,
+--   transaction_type STRING, status STRING, risk_score FLOAT, is_fraud STRING
+-- )
+-- PARTITIONED BY (year INT, month INT)
+-- STORED AS TEXTFILE
+-- 2026-09-07 01:12:24,160 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl to org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook
+-- 2026-09-07 01:12:24,161 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-07 01:12:24,162 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Cleaning up thread local RawStore...
+-- 2026-09-07 01:12:24,162 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:12:24,164 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:12:24,165 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:12:24,166 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-07 01:12:24,167 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeCreateTable(12993)) - Creating table default.transactions_particionada position=13
+-- 2026-09-07 01:12:24,170 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:12:24,171 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:12:24,172 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:12:24,175 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:12:24,181 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:12:24,182 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:12:24,182 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-07 01:12:24,183 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:12:24,186 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:12:24,186 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+-- 2026-09-07 01:12:24,188 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907011224_e84086d9-e5bd-4ebd-8ef0-5c7b5bc95241); Time taken: 0.051 seconds
+-- 2026-09-07 01:12:24,189 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:12:24,189 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:12:24,190 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907011224_e84086d9-e5bd-4ebd-8ef0-5c7b5bc95241): CREATE TABLE transactions_particionada (
+--   transaction_id INT, customer_id INT, amount FLOAT,
+--   transaction_type STRING, status STRING, risk_score FLOAT, is_fraud STRING
+-- )
+-- PARTITIONED BY (year INT, month INT)
+-- STORED AS TEXTFILE
+-- 2026-09-07 01:12:24,200 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:DDL] in serial mode
+-- 2026-09-07 01:12:24,201 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: create_table: Table(tableName:transactions_particionada, dbName:default, owner:palomamusa, createTime:1788754344, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:string, comment:null)], location:null, inputFormat:org.apache.hadoop.mapred.TextInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, parameters:{serialization.format=1}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null)], parameters:{bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:MANAGED_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-07 01:12:24,202 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=create_table: Table(tableName:transactions_particionada, dbName:default, owner:palomamusa, createTime:1788754344, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:string, comment:null)], location:null, inputFormat:org.apache.hadoop.mapred.TextInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe, parameters:{serialization.format=1}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null)], parameters:{bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:MANAGED_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-07 01:12:24,691 ERROR [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingHMSHandler (RetryingHMSHandler.java:invokeInternal(201)) - AlreadyExistsException(message:Table hive.default.transactions_particionada already exists)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_core(HiveMetaStore.java:1841)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_core(HiveMetaStore.java:1788)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_with_environment_context(HiveMetaStore.java:2037)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.hive.metastore.RetryingHMSHandler.invokeInternal(RetryingHMSHandler.java:147)
+--         at org.apache.hadoop.hive.metastore.RetryingHMSHandler.invoke(RetryingHMSHandler.java:108)
+--         at com.sun.proxy.$Proxy38.create_table_with_environment_context(Unknown Source)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.create_table_with_environment_context(HiveMetaStoreClient.java:2867)
+--         at org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient.create_table_with_environment_context(SessionHiveMetaStoreClient.java:121)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.createTable(HiveMetaStoreClient.java:837)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.createTable(HiveMetaStoreClient.java:822)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.hive.metastore.RetryingMetaStoreClient.invoke(RetryingMetaStoreClient.java:212)
+--         at com.sun.proxy.$Proxy39.createTable(Unknown Source)
+--         at org.apache.hadoop.hive.ql.metadata.Hive.createTable(Hive.java:928)
+--         at org.apache.hadoop.hive.ql.metadata.Hive.createTable(Hive.java:944)
+--         at org.apache.hadoop.hive.ql.exec.DDLTask.createTable(DDLTask.java:4957)
+--         at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:428)
+--         at org.apache.hadoop.hive.ql.exec.Task.executeTask(Task.java:205)
+--         at org.apache.hadoop.hive.ql.exec.TaskRunner.runSequential(TaskRunner.java:97)
+--         at org.apache.hadoop.hive.ql.Driver.launchTask(Driver.java:2664)
+--         at org.apache.hadoop.hive.ql.Driver.execute(Driver.java:2335)
+--         at org.apache.hadoop.hive.ql.Driver.runInternal(Driver.java:2011)
+--         at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1709)
+--         at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1703)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:157)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:218)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLocalCmd(CliDriver.java:239)
+--         at org.apache.hadoop.hive.cli.CliDriver.processCmd(CliDriver.java:188)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLine(CliDriver.java:402)
+--         at org.apache.hadoop.hive.cli.CliDriver.executeDriver(CliDriver.java:821)
+--         at org.apache.hadoop.hive.cli.CliDriver.run(CliDriver.java:759)
+--         at org.apache.hadoop.hive.cli.CliDriver.main(CliDriver.java:683)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.util.RunJar.run(RunJar.java:328)
+--         at org.apache.hadoop.util.RunJar.main(RunJar.java:241)
+
+-- 2026-09-07 01:12:24,741 ERROR [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.DDLTask (DDLTask.java:failed(927)) - Failed
+-- org.apache.hadoop.hive.ql.metadata.HiveException: AlreadyExistsException(message:Table hive.default.transactions_particionada already exists)
+--         at org.apache.hadoop.hive.ql.metadata.Hive.createTable(Hive.java:936)
+--         at org.apache.hadoop.hive.ql.metadata.Hive.createTable(Hive.java:944)
+--         at org.apache.hadoop.hive.ql.exec.DDLTask.createTable(DDLTask.java:4957)
+--         at org.apache.hadoop.hive.ql.exec.DDLTask.execute(DDLTask.java:428)
+--         at org.apache.hadoop.hive.ql.exec.Task.executeTask(Task.java:205)
+--         at org.apache.hadoop.hive.ql.exec.TaskRunner.runSequential(TaskRunner.java:97)
+--         at org.apache.hadoop.hive.ql.Driver.launchTask(Driver.java:2664)
+--         at org.apache.hadoop.hive.ql.Driver.execute(Driver.java:2335)
+--         at org.apache.hadoop.hive.ql.Driver.runInternal(Driver.java:2011)
+--         at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1709)
+--         at org.apache.hadoop.hive.ql.Driver.run(Driver.java:1703)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:157)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:218)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLocalCmd(CliDriver.java:239)
+--         at org.apache.hadoop.hive.cli.CliDriver.processCmd(CliDriver.java:188)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLine(CliDriver.java:402)
+--         at org.apache.hadoop.hive.cli.CliDriver.executeDriver(CliDriver.java:821)
+--         at org.apache.hadoop.hive.cli.CliDriver.run(CliDriver.java:759)
+--         at org.apache.hadoop.hive.cli.CliDriver.main(CliDriver.java:683)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.util.RunJar.run(RunJar.java:328)
+--         at org.apache.hadoop.util.RunJar.main(RunJar.java:241)
+-- Caused by: AlreadyExistsException(message:Table hive.default.transactions_particionada already exists)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_core(HiveMetaStore.java:1841)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_core(HiveMetaStore.java:1788)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStore$HMSHandler.create_table_with_environment_context(HiveMetaStore.java:2037)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.hive.metastore.RetryingHMSHandler.invokeInternal(RetryingHMSHandler.java:147)
+--         at org.apache.hadoop.hive.metastore.RetryingHMSHandler.invoke(RetryingHMSHandler.java:108)
+--         at com.sun.proxy.$Proxy38.create_table_with_environment_context(Unknown Source)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.create_table_with_environment_context(HiveMetaStoreClient.java:2867)
+--         at org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient.create_table_with_environment_context(SessionHiveMetaStoreClient.java:121)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.createTable(HiveMetaStoreClient.java:837)
+--         at org.apache.hadoop.hive.metastore.HiveMetaStoreClient.createTable(HiveMetaStoreClient.java:822)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.hive.metastore.RetryingMetaStoreClient.invoke(RetryingMetaStoreClient.java:212)
+--         at com.sun.proxy.$Proxy39.createTable(Unknown Source)
+--         at org.apache.hadoop.hive.ql.metadata.Hive.createTable(Hive.java:928)
+--         ... 24 more
+-- 2026-09-07 01:12:24,780 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReOptimizePlugin (ReOptimizePlugin.java:run(70)) - ReOptimization: retryPossible: false
+-- FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. AlreadyExistsException(message:Table hive.default.transactions_particionada already exists)
+-- 2026-09-07 01:12:24,781 ERROR [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printError(1250)) - FAILED: Execution Error, return code 1 from org.apache.hadoop.hive.ql.exec.DDLTask. AlreadyExistsException(message:Table hive.default.transactions_particionada already exists)
+-- 2026-09-07 01:12:24,782 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907011224_e84086d9-e5bd-4ebd-8ef0-5c7b5bc95241); Time taken: 0.592 seconds
+-- 2026-09-07 01:12:24,783 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:12:24,786 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:12:24,787 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
+
+#----------------------------------------------------------------------------------------------------
+### Passo 3 — Popular as partições a partir da raw
+
+```sql
+SET hive.exec.dynamic.partition.mode=nonstrict;
+
+INSERT INTO TABLE transactions_particionada PARTITION(year, month)
+SELECT transaction_id, customer_id, amount, transaction_type, status,
+       risk_score, is_fraud,
+       YEAR(ts) AS year, MONTH(ts) AS month
+FROM raw_transactions;
+```
+
+-- hive> SET hive.exec.dynamic.partition.mode=nonstrict;
+
+-- INSERT INTO TABLE tra2026-09-07 01:13:37,886 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- nsaction2026-09-07 01:13:37,886 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- s_particionada PARTITION(year, month)
+-- SELECT transaction_id, customer_id, amount, transaction_type, status,
+--        risk_score, is_fraud,
+--        YEAR(ts) AS year, MONTH(ts) AS month
+-- FROM raw_transactions;
+-- 2026-09-07 01:13:37,913 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:13:37,913 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>     >     >     >     >     > 2026-09-07 01:13:37,916 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:13:37,916 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- 2026-09-07 01:13:37,918 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4): INSERT INTO TABLE transactions_particionada PARTITION(year, month)
+-- SELECT transaction_id, customer_id, amount, transaction_type, status,
+--        risk_score, is_fraud,
+--        YEAR(ts) AS year, MONTH(ts) AS month
+-- FROM raw_transactions
+-- 2026-09-07 01:13:37,947 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:13:37,948 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-07 01:13:38,011 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-07 01:13:38,012 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:13:38,020 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:38,021 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:38,037 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,039 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,040 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,041 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,042 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,043 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,044 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,045 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,046 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,049 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,050 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,055 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,056 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,056 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,057 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,059 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,059 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,060 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] DataNucleus.Persistence (Log4JLogger.java:info(77)) - Request to load fields "comment,name,type" of class org.apache.hadoop.hive.metastore.model.MFieldSchema but object is embedded, so ignored
+-- 2026-09-07 01:13:38,065 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:13:38,067 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:13:38,073 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:38,074 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:38,091 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.BaseSemanticAnalyzer (BaseSemanticAnalyzer.java:validatePartColumnType(2024)) - Dynamic partitioning is used; only validating 0 columns
+-- 2026-09-07 01:13:38,093 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-07 01:13:39,631 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,632 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_not_null_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,754 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,760 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,797 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,798 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,803 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,806 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_unique_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:39,829 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=raw_transactions
+-- 2026-09-07 01:13:39,831 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=raw_transactions
+-- 2026-09-07 01:13:41,117 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-07 01:13:41,118 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_databases: @hive#
+-- 2026-09-07 01:13:41,124 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:13:41,125 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:13:41,169 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:13:41,170 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:41,171 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:13:41,199 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:13:41,200 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:13:41,201 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,203 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,216 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.BaseSemanticAnalyzer (BaseSemanticAnalyzer.java:validatePartColumnType(2024)) - Dynamic partitioning is used; only validating 0 columns
+-- 2026-09-07 01:13:41,314 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1
+-- 2026-09-07 01:13:41,347 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,349 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_not_null_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,359 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_check_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,363 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_check_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,427 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,429 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,447 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genAutoColumnStatsGatheringPipeline(7971)) - Generate an operator pipeline to autogather column stats for table default.transactions_particionada in query INSERT INTO TABLE transactions_particionada PARTITION(year, month)
+-- SELECT transaction_id, customer_id, amount, transaction_type, status,
+--        risk_score, is_fraud,
+--        YEAR(ts) AS year, MONTH(ts) AS month
+-- FROM raw_transactions
+-- 2026-09-07 01:13:41,467 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,471 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,497 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:13:41,497 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,498 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:41,512 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:13:41,512 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:13:41,835 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-41_459_6573301726809967059-1
+-- 2026-09-07 01:13:41,875 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-41_459_6573301726809967059-1/-mr-10000/.hive-staging_hive_2026-09-07_01-13-41_459_6573301726809967059-1
+-- 2026-09-07 01:13:41,881 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-07 01:13:41,918 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(2)
+-- 2026-09-07 01:13:41,919 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(9)
+-- 2026-09-07 01:13:41,921 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(8)
+-- 2026-09-07 01:13:41,925 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(7)
+-- 2026-09-07 01:13:41,925 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(6)
+-- 2026-09-07 01:13:41,926 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(5)
+-- 2026-09-07 01:13:41,927 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(4)
+-- 2026-09-07 01:13:41,927 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-07 01:13:41,928 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-07 01:13:41,961 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 6 oldColExprMap: {KEY._col0=Column[_col0], VALUE._col2=Column[_col4], KEY._col1=Column[_col1], VALUE._col3=Column[_col5], VALUE._col4=Column[_col6], VALUE._col5=Column[_col7], VALUE._col0=Column[_col2], VALUE._col1=Column[_col3], VALUE._col6=Column[_col8]}
+-- 2026-09-07 01:13:41,963 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 6 newColExprMap: {KEY._col0=Column[_col0], VALUE._col2=Column[_col4], KEY._col1=Column[_col1], VALUE._col3=Column[_col5], VALUE._col4=Column[_col6], VALUE._col5=Column[_col7], VALUE._col0=Column[_col2], VALUE._col1=Column[_col3], VALUE._col6=Column[_col8]}
+-- 2026-09-07 01:13:42,053 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:42,055 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:42,115 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.GenMRFileSink1 (GenMRFileSink1.java:process(112)) - using CombineHiveInputformat for the merge job
+-- 2026-09-07 01:13:42,117 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:42,121 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:13:42,252 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-07 01:13:42,259 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.mapred.TextInputFormat]
+-- 2026-09-07 01:13:42,260 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-07 01:13:42,304 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-07 01:13:42,305 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: false
+-- 2026-09-07 01:13:42,307 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1041)) - Map notVectorizedReason: Aggregation Function expression for GROUPBY operator: UDF compute_stats not supported
+-- 2026-09-07 01:13:42,311 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-07 01:13:42,312 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vector.serde.deserialize IS true]
+-- 2026-09-07 01:13:42,313 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.mapred.TextInputFormat]
+-- 2026-09-07 01:13:42,314 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-07 01:13:42,315 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-07 01:13:42,316 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 1
+-- 2026-09-07 01:13:42,317 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-07 01:13:42,318 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-07 01:13:42,321 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.HiveStatsUtils (HiveStatsUtils.java:getNumBitVectorsForNDVEstimation(156)) - Error requested is 20.0%
+-- 2026-09-07 01:13:42,321 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.HiveStatsUtils (HiveStatsUtils.java:getNumBitVectorsForNDVEstimation(157)) - Choosing 16 bit vectors..
+-- 2026-09-07 01:13:42,346 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-07 01:13:42,347 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:13:42,347 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:string, comment:null), FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null)], properties:null)
+-- 2026-09-07 01:13:42,352 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4); Time taken: 4.434 seconds
+-- 2026-09-07 01:13:42,353 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:13:42,354 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:13:42,355 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4): INSERT INTO TABLE transactions_particionada PARTITION(year, month)
+-- SELECT transaction_id, customer_id, amount, transaction_type, status,
+--        risk_score, is_fraud,
+--        YEAR(ts) AS year, MONTH(ts) AS month
+-- FROM raw_transactions
+-- 2026-09-07 01:13:42,363 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4
+-- 2026-09-07 01:13:42,365 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4
+-- Total jobs = 3
+-- 2026-09-07 01:13:42,366 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 3
+-- Launching Job 1 out of 3
+-- 2026-09-07 01:13:42,383 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 3
+-- 2026-09-07 01:13:42,393 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-1:MAPRED] in serial mode
+-- 2026-09-07 01:13:43,393 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/bigdata/raw/transactions length: 7196116 file count: 5  directory count: 1
+-- 2026-09-07 01:13:43,400 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:estimateNumberOfReducers(3136)) - BytesPerReducer=256000000 maxReducers=1009 totalInputFileSize=7196116
+-- Number of reduce tasks not specified. Estimated from input data size: 1
+-- 2026-09-07 01:13:43,401 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks not specified. Estimated from input data size: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-07 01:13:43,404 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-07 01:13:43,406 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-07 01:13:43,407 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-07 01:13:43,409 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-07 01:13:43,411 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-07 01:13:43,417 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-07 01:13:43,422 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-37_942_2179970851710009640-1
+-- 2026-09-07 01:13:43,438 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-07 01:13:43,443 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias raw_transactions
+-- 2026-09-07 01:13:43,444 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/bigdata/raw/transactions
+-- 2026-09-07 01:13:43,449 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-37_942_2179970851710009640-1
+-- 2026-09-07 01:13:43,782 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-07 01:13:44,102 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.submit.replication is deprecated. Instead, use mapreduce.client.submit.file.replication
+-- 2026-09-07 01:13:44,122 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 10.64KB
+-- 2026-09-07 01:13:44,193 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-07 01:13:44,401 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 13.21KB
+-- 2026-09-07 01:13:44,871 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-07 01:13:45,760 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] fs.FSStatsPublisher (FSStatsPublisher.java:init(53)) - created : hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10001
+-- 2026-09-07 01:13:45,788 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] fs.FSStatsPublisher (FSStatsPublisher.java:init(53)) - created : hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-41_459_6573301726809967059-1/-mr-10000/.hive-staging_hive_2026-09-07_01-13-41_459_6573301726809967059-1/-ext-10002
+-- 2026-09-07 01:13:45,880 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-07 01:13:45,891 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-37_942_2179970851710009640-1/-mr-10004/de2a0bcd-0adb-4eb6-999f-e6daeaf8e07a/map.xml
+-- 2026-09-07 01:13:45,892 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-37_942_2179970851710009640-1/-mr-10004/de2a0bcd-0adb-4eb6-999f-e6daeaf8e07a/reduce.xml
+-- 2026-09-07 01:13:46,577 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-07 01:13:46,617 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1788746338495_0007
+-- 2026-09-07 01:13:48,217 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-13-37_942_2179970851710009640-1/-mr-10004/de2a0bcd-0adb-4eb6-999f-e6daeaf8e07a/map.xml
+-- 2026-09-07 01:13:48,219 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-07 01:13:48,237 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/bigdata/raw/transactions; using filter path hdfs://localhost:9000/user/bigdata/raw/transactions
+-- 2026-09-07 01:13:48,312 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 4
+-- 2026-09-07 01:13:48,390 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-07 01:13:48,392 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-07 01:13:48,715 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-07 01:13:48,754 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - yarn.resourcemanager.system-metrics-publisher.enabled is deprecated. Instead, use yarn.system-metrics-publisher.enabled
+-- 2026-09-07 01:13:48,817 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1788746338495_0007
+-- 2026-09-07 01:13:48,819 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-07 01:13:49,637 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.Configuration (Configuration.java:getConfResourceAsInputStream(2854)) - resource-types.xml not found
+-- 2026-09-07 01:13:49,642 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] resource.ResourceUtils (ResourceUtils.java:addResourcesFileToConf(476)) - Unable to find 'resource-types.xml'.
+-- 2026-09-07 01:13:49,895 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1788746338495_0007
+-- 2026-09-07 01:13:50,017 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0007/
+-- Starting Job = job_1788746338495_0007, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0007/
+-- 2026-09-07 01:13:50,022 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1788746338495_0007, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0007/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1788746338495_0007
+-- 2026-09-07 01:13:50,025 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1788746338495_0007
+-- Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-07 01:14:02,700 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-07 01:14:02,793 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-07 01:14:02,783 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-07 01:14:02,796 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:14:02,783 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-07 01:14:22,486 Stage-1 map = 67%,  reduce = 0%, Cumulative CPU 10.47 sec
+-- 2026-09-07 01:14:22,487 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:14:22,486 Stage-1 map = 67%,  reduce = 0%, Cumulative CPU 10.47 sec
+-- 2026-09-07 01:14:26,948 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 10.92 sec
+-- 2026-09-07 01:14:26,949 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:14:26,948 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 10.92 sec
+-- 2026-09-07 01:14:53,994 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 14.34 sec
+-- 2026-09-07 01:14:53,994 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:14:53,994 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 14.34 sec
+-- MapReduce Total cumulative CPU time: 14 seconds 340 msec
+-- 2026-09-07 01:14:58,218 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 14 seconds 340 msec
+-- Ended Job = job_1788746338495_0007
+-- 2026-09-07 01:14:58,593 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1788746338495_0007
+-- 2026-09-07 01:14:59,216 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-7:CONDITIONAL] in serial mode
+-- Stage-4 is selected by condition resolver.
+-- 2026-09-07 01:14:59,343 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Stage-4 is selected by condition resolver.
+-- Stage-3 is filtered out by condition resolver.
+-- 2026-09-07 01:14:59,348 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Stage-3 is filtered out by condition resolver.
+-- Stage-5 is filtered out by condition resolver.
+-- 2026-09-07 01:14:59,352 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Stage-5 is filtered out by condition resolver.
+-- 2026-09-07 01:14:59,355 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-4:MOVE] in serial mode
+-- 2026-09-07 01:14:59,391 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-07 01:14:59,393 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Cleaning up thread local RawStore...
+-- 2026-09-07 01:14:59,398 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:14:59,399 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- Moving data to directory hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000
+-- 2026-09-07 01:14:59,401 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Moving data to directory hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000 from hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10002
+-- 2026-09-07 01:14:59,446 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:MOVE] in serial mode
+-- Loading data to table default.transactions_particionada partition (year=null, month=null)
+-- 2026-09-07 01:14:59,447 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Loading data to table default.transactions_particionada partition (year=null, month=null) from hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000
+-- 2026-09-07 01:14:59,449 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:14:59,450 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:14:59,451 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,454 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,455 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,456 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:14:59,458 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:14:59,459 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:14:59,483 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:execute(382)) - Partition is: {year=null, month=null}
+
+
+-- 2026-09-07 01:14:59,518 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -
+
+-- 2026-09-07 01:14:59,523 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:14:59,524 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:14:59,589 INFO  [load-dynamic-partitions-0] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=8 with partSpec {year=2024, month=8}
+-- 2026-09-07 01:14:59,591 INFO  [load-dynamic-partitions-3] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=12 with partSpec {year=2023, month=12}
+-- 2026-09-07 01:14:59,590 INFO  [load-dynamic-partitions-2] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=2 with partSpec {year=2024, month=2}
+-- 2026-09-07 01:14:59,589 INFO  [load-dynamic-partitions-1] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=5 with partSpec {year=2024, month=5}
+-- 2026-09-07 01:14:59,629 INFO  [load-dynamic-partitions-4] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=7 with partSpec {year=2023, month=7}
+-- 2026-09-07 01:14:59,630 INFO  [load-dynamic-partitions-5] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=12 with partSpec {year=2024, month=12}
+-- 2026-09-07 01:14:59,632 INFO  [load-dynamic-partitions-6] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=6 with partSpec {year=2023, month=6}
+-- 2026-09-07 01:14:59,636 INFO  [load-dynamic-partitions-11] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=10 with partSpec {year=2024, month=10}
+-- 2026-09-07 01:14:59,636 INFO  [load-dynamic-partitions-10] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=11 with partSpec {year=2024, month=11}
+-- 2026-09-07 01:14:59,635 INFO  [load-dynamic-partitions-9] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=1 with partSpec {year=2024, month=1}
+-- 2026-09-07 01:14:59,634 INFO  [load-dynamic-partitions-8] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=3 with partSpec {year=2023, month=3}
+-- 2026-09-07 01:14:59,633 INFO  [load-dynamic-partitions-7] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=4 with partSpec {year=2024, month=4}
+-- 2026-09-07 01:14:59,633 INFO  [load-dynamic-partitions-0] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 2: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,8]
+-- 2026-09-07 01:14:59,638 INFO  [load-dynamic-partitions-14] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=2 with partSpec {year=2023, month=2}
+-- 2026-09-07 01:14:59,638 INFO  [load-dynamic-partitions-13] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=5 with partSpec {year=2023, month=5}
+-- 2026-09-07 01:14:59,637 INFO  [load-dynamic-partitions-12] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=11 with partSpec {year=2023, month=11}
+-- 2026-09-07 01:14:59,645 INFO  [load-dynamic-partitions-0] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,8]
+-- 2026-09-07 01:14:59,657 INFO  [load-dynamic-partitions-0] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 2: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:14:59,659 INFO  [load-dynamic-partitions-0] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,661 INFO  [load-dynamic-partitions-0] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,662 INFO  [load-dynamic-partitions-0] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,840 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,11]
+-- 2026-09-07 01:14:59,841 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,11]
+-- 2026-09-07 01:14:59,847 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 3: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:14:59,848 INFO  [load-dynamic-partitions-12] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,850 INFO  [load-dynamic-partitions-12] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,851 INFO  [load-dynamic-partitions-12] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,852 WARN  [load-dynamic-partitions-0] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:14:59,854 INFO  [load-dynamic-partitions-0] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,856 INFO  [load-dynamic-partitions-0] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,856 INFO  [load-dynamic-partitions-0] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,858 INFO  [load-dynamic-partitions-0] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:14:59,865 INFO  [load-dynamic-partitions-0] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 2: get_database: @hive#default
+-- 2026-09-07 01:14:59,865 INFO  [load-dynamic-partitions-0] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:14:59,875 INFO  [load-dynamic-partitions-0] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=8
+-- 2026-09-07 01:14:59,885 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,5]
+-- 2026-09-07 01:14:59,885 WARN  [load-dynamic-partitions-12] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:14:59,886 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,5]
+-- 2026-09-07 01:14:59,888 INFO  [load-dynamic-partitions-12] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,890 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 4: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:14:59,892 INFO  [load-dynamic-partitions-12] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,896 INFO  [load-dynamic-partitions-12] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,898 INFO  [load-dynamic-partitions-13] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,898 INFO  [load-dynamic-partitions-12] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:14:59,900 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: get_database: @hive#default
+-- 2026-09-07 01:14:59,900 INFO  [load-dynamic-partitions-13] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,902 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:14:59,903 INFO  [load-dynamic-partitions-13] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,929 INFO  [load-dynamic-partitions-12] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=11
+-- 2026-09-07 01:14:59,950 INFO  [load-dynamic-partitions-14] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 5: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,2]
+-- 2026-09-07 01:14:59,950 WARN  [load-dynamic-partitions-13] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:14:59,952 INFO  [load-dynamic-partitions-14] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,2]
+-- 2026-09-07 01:14:59,959 INFO  [load-dynamic-partitions-13] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,964 INFO  [load-dynamic-partitions-14] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 5: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:14:59,966 INFO  [load-dynamic-partitions-13] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,973 INFO  [load-dynamic-partitions-13] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,975 INFO  [load-dynamic-partitions-14] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:14:59,975 INFO  [load-dynamic-partitions-13] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:14:59,978 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: get_database: @hive#default
+-- 2026-09-07 01:14:59,978 INFO  [load-dynamic-partitions-14] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:14:59,980 INFO  [load-dynamic-partitions-14] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:14:59,979 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,001 INFO  [load-dynamic-partitions-13] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=5
+-- 2026-09-07 01:15:00,030 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,4]
+-- 2026-09-07 01:15:00,031 WARN  [load-dynamic-partitions-14] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,033 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,4]
+-- 2026-09-07 01:15:00,037 INFO  [load-dynamic-partitions-14] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,039 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 6: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,041 INFO  [load-dynamic-partitions-14] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,041 INFO  [load-dynamic-partitions-14] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,042 INFO  [load-dynamic-partitions-7] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,042 INFO  [load-dynamic-partitions-14] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,044 INFO  [load-dynamic-partitions-14] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 5: get_database: @hive#default
+-- 2026-09-07 01:15:00,044 INFO  [load-dynamic-partitions-7] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,051 INFO  [load-dynamic-partitions-7] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,047 INFO  [load-dynamic-partitions-14] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,056 INFO  [load-dynamic-partitions-14] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=2
+-- 2026-09-07 01:15:00,069 INFO  [load-dynamic-partitions-8] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 7: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,3]
+-- 2026-09-07 01:15:00,070 WARN  [load-dynamic-partitions-7] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,070 INFO  [load-dynamic-partitions-8] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,3]
+-- 2026-09-07 01:15:00,072 INFO  [load-dynamic-partitions-7] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,074 INFO  [load-dynamic-partitions-8] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 7: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,076 INFO  [load-dynamic-partitions-7] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,081 INFO  [load-dynamic-partitions-7] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,083 INFO  [load-dynamic-partitions-8] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,084 INFO  [load-dynamic-partitions-7] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,085 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: get_database: @hive#default
+-- 2026-09-07 01:15:00,086 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,086 INFO  [load-dynamic-partitions-8] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,088 INFO  [load-dynamic-partitions-8] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,092 INFO  [load-dynamic-partitions-7] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=4
+-- 2026-09-07 01:15:00,112 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,1]
+-- 2026-09-07 01:15:00,113 WARN  [load-dynamic-partitions-8] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,115 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,1]
+-- 2026-09-07 01:15:00,116 INFO  [load-dynamic-partitions-8] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,118 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 8: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,120 INFO  [load-dynamic-partitions-8] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,120 INFO  [load-dynamic-partitions-8] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,122 INFO  [load-dynamic-partitions-9] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,122 INFO  [load-dynamic-partitions-8] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,126 INFO  [load-dynamic-partitions-9] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,129 INFO  [load-dynamic-partitions-8] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 7: get_database: @hive#default
+-- 2026-09-07 01:15:00,130 INFO  [load-dynamic-partitions-9] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,130 INFO  [load-dynamic-partitions-8] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,136 INFO  [load-dynamic-partitions-8] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=3
+-- 2026-09-07 01:15:00,152 INFO  [load-dynamic-partitions-10] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 9: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,11]
+-- 2026-09-07 01:15:00,153 WARN  [load-dynamic-partitions-9] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,154 INFO  [load-dynamic-partitions-10] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,11]
+-- 2026-09-07 01:15:00,159 INFO  [load-dynamic-partitions-9] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,161 INFO  [load-dynamic-partitions-10] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 9: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,163 INFO  [load-dynamic-partitions-9] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,164 INFO  [load-dynamic-partitions-9] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,165 INFO  [load-dynamic-partitions-10] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,165 INFO  [load-dynamic-partitions-9] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,167 INFO  [load-dynamic-partitions-10] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,167 INFO  [load-dynamic-partitions-10] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,167 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: get_database: @hive#default
+-- 2026-09-07 01:15:00,171 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,179 INFO  [load-dynamic-partitions-9] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=1
+-- 2026-09-07 01:15:00,188 INFO  [load-dynamic-partitions-11] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 10: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,10]
+-- 2026-09-07 01:15:00,188 WARN  [load-dynamic-partitions-10] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,189 INFO  [load-dynamic-partitions-11] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,10]
+-- 2026-09-07 01:15:00,194 INFO  [load-dynamic-partitions-10] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,196 INFO  [load-dynamic-partitions-11] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 10: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,198 INFO  [load-dynamic-partitions-10] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,199 INFO  [load-dynamic-partitions-10] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,200 INFO  [load-dynamic-partitions-11] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,200 INFO  [load-dynamic-partitions-10] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,203 INFO  [load-dynamic-partitions-11] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,207 INFO  [load-dynamic-partitions-11] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,206 INFO  [load-dynamic-partitions-10] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 9: get_database: @hive#default
+-- 2026-09-07 01:15:00,208 INFO  [load-dynamic-partitions-10] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,213 INFO  [load-dynamic-partitions-10] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=11
+-- 2026-09-07 01:15:00,225 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,6]
+-- 2026-09-07 01:15:00,226 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,6]
+-- 2026-09-07 01:15:00,225 WARN  [load-dynamic-partitions-11] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,228 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 11: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,229 INFO  [load-dynamic-partitions-11] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,232 INFO  [load-dynamic-partitions-11] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,236 INFO  [load-dynamic-partitions-11] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,237 INFO  [load-dynamic-partitions-6] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,237 INFO  [load-dynamic-partitions-11] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,239 INFO  [load-dynamic-partitions-11] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 10: get_database: @hive#default
+-- 2026-09-07 01:15:00,239 INFO  [load-dynamic-partitions-6] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,239 INFO  [load-dynamic-partitions-11] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,240 INFO  [load-dynamic-partitions-6] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,246 INFO  [load-dynamic-partitions-11] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=10
+-- 2026-09-07 01:15:00,263 INFO  [load-dynamic-partitions-5] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 12: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,12]
+-- 2026-09-07 01:15:00,263 WARN  [load-dynamic-partitions-6] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,264 INFO  [load-dynamic-partitions-5] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,12]
+-- 2026-09-07 01:15:00,269 INFO  [load-dynamic-partitions-6] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,271 INFO  [load-dynamic-partitions-5] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 12: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,273 INFO  [load-dynamic-partitions-6] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,273 INFO  [load-dynamic-partitions-6] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,275 INFO  [load-dynamic-partitions-5] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,276 INFO  [load-dynamic-partitions-5] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,277 INFO  [load-dynamic-partitions-5] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,276 INFO  [load-dynamic-partitions-6] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,285 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: get_database: @hive#default
+-- 2026-09-07 01:15:00,285 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,290 INFO  [load-dynamic-partitions-6] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=6
+-- 2026-09-07 01:15:00,298 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,12]
+-- 2026-09-07 01:15:00,299 WARN  [load-dynamic-partitions-5] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,300 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,12]
+-- 2026-09-07 01:15:00,301 INFO  [load-dynamic-partitions-5] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,304 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 13: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,305 INFO  [load-dynamic-partitions-5] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,306 INFO  [load-dynamic-partitions-5] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,307 INFO  [load-dynamic-partitions-3] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,307 INFO  [load-dynamic-partitions-5] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,308 INFO  [load-dynamic-partitions-5] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 12: get_database: @hive#default
+-- 2026-09-07 01:15:00,308 INFO  [load-dynamic-partitions-3] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,309 INFO  [load-dynamic-partitions-5] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,314 INFO  [load-dynamic-partitions-3] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,319 INFO  [load-dynamic-partitions-5] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=12
+-- 2026-09-07 01:15:00,338 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,2]
+-- 2026-09-07 01:15:00,339 WARN  [load-dynamic-partitions-3] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,339 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,2]
+-- 2026-09-07 01:15:00,341 INFO  [load-dynamic-partitions-3] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,348 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 14: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,350 INFO  [load-dynamic-partitions-3] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,350 INFO  [load-dynamic-partitions-3] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,351 INFO  [load-dynamic-partitions-2] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,351 INFO  [load-dynamic-partitions-3] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,353 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: get_database: @hive#default
+-- 2026-09-07 01:15:00,353 INFO  [load-dynamic-partitions-2] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,353 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,354 INFO  [load-dynamic-partitions-2] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,359 INFO  [load-dynamic-partitions-3] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=12
+-- 2026-09-07 01:15:00,373 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,5]
+-- 2026-09-07 01:15:00,375 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,5]
+-- 2026-09-07 01:15:00,375 WARN  [load-dynamic-partitions-2] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,381 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 15: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,381 INFO  [load-dynamic-partitions-2] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,384 INFO  [load-dynamic-partitions-2] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,384 INFO  [load-dynamic-partitions-2] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,386 INFO  [load-dynamic-partitions-1] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,386 INFO  [load-dynamic-partitions-2] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,389 INFO  [load-dynamic-partitions-1] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,394 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: get_database: @hive#default
+-- 2026-09-07 01:15:00,395 INFO  [load-dynamic-partitions-1] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,395 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,400 INFO  [load-dynamic-partitions-2] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=2
+-- 2026-09-07 01:15:00,410 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,7]
+-- 2026-09-07 01:15:00,411 WARN  [load-dynamic-partitions-1] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,411 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,7]
+-- 2026-09-07 01:15:00,413 INFO  [load-dynamic-partitions-1] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,450 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 16: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:00,452 INFO  [load-dynamic-partitions-1] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,452 INFO  [load-dynamic-partitions-1] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,454 INFO  [load-dynamic-partitions-4] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,454 INFO  [load-dynamic-partitions-1] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,456 INFO  [load-dynamic-partitions-4] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,457 INFO  [load-dynamic-partitions-4] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,457 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: get_database: @hive#default
+-- 2026-09-07 01:15:00,459 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,465 INFO  [load-dynamic-partitions-1] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=5
+-- 2026-09-07 01:15:00,479 WARN  [load-dynamic-partitions-4] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:00,480 INFO  [load-dynamic-partitions-4] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:00,485 INFO  [load-dynamic-partitions-4] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:00,485 INFO  [load-dynamic-partitions-4] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:00,486 INFO  [load-dynamic-partitions-4] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:00,487 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: get_database: @hive#default
+-- 2026-09-07 01:15:00,488 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:00,491 INFO  [load-dynamic-partitions-4] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=7
+-- 2026-09-07 01:15:00,983 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:00,986 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,666 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,666 INFO  [load-dynamic-partitions-2] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=3 with partSpec {year=2024, month=3}
+-- 2026-09-07 01:15:01,668 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,711 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,711 INFO  [load-dynamic-partitions-6] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=7 with partSpec {year=2024, month=7}
+-- 2026-09-07 01:15:01,713 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,742 INFO  [load-dynamic-partitions-9] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=9 with partSpec {year=2024, month=9}
+-- 2026-09-07 01:15:01,742 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,749 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,775 INFO  [load-dynamic-partitions-13] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=9 with partSpec {year=2023, month=9}
+-- 2026-09-07 01:15:01,775 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,783 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,813 INFO  [load-dynamic-partitions-12] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=10 with partSpec {year=2023, month=10}
+-- 2026-09-07 01:15:01,813 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,820 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,841 INFO  [load-dynamic-partitions-3] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=1 with partSpec {year=2023, month=1}
+-- 2026-09-07 01:15:01,841 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,848 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,866 INFO  [load-dynamic-partitions-1] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=4 with partSpec {year=2023, month=4}
+-- 2026-09-07 01:15:01,866 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,868 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,889 INFO  [load-dynamic-partitions-7] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2023/month=8 with partSpec {year=2023, month=8}
+-- 2026-09-07 01:15:01,889 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,896 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,915 INFO  [load-dynamic-partitions-4] metadata.Hive (Hive.java:call(2244)) - New loading path = hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10000/year=2024/month=6 with partSpec {year=2024, month=6}
+-- 2026-09-07 01:15:01,915 INFO  [load-dynamic-partitions-0] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 2: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,918 INFO  [load-dynamic-partitions-0] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,973 INFO  [load-dynamic-partitions-8] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 7: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:01,977 INFO  [load-dynamic-partitions-8] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,025 INFO  [load-dynamic-partitions-11] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 10: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,027 INFO  [load-dynamic-partitions-11] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,053 INFO  [load-dynamic-partitions-5] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 12: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,053 INFO  [load-dynamic-partitions-5] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,072 INFO  [load-dynamic-partitions-10] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 9: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,073 INFO  [load-dynamic-partitions-10] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,093 INFO  [load-dynamic-partitions-14] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 5: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,094 INFO  [load-dynamic-partitions-14] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,119 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,6]
+-- 2026-09-07 01:15:02,119 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,6]
+-- 2026-09-07 01:15:02,132 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: get_database: @hive#default
+-- 2026-09-07 01:15:02,132 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,132 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,8]
+-- 2026-09-07 01:15:02,135 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,8]
+-- 2026-09-07 01:15:02,136 INFO  [load-dynamic-partitions-4] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=6
+-- 2026-09-07 01:15:02,151 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: get_database: @hive#default
+-- 2026-09-07 01:15:02,151 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,4]
+-- 2026-09-07 01:15:02,151 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,153 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,4]
+-- 2026-09-07 01:15:02,162 INFO  [load-dynamic-partitions-7] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=8
+-- 2026-09-07 01:15:02,175 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,1]
+-- 2026-09-07 01:15:02,175 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: get_database: @hive#default
+-- 2026-09-07 01:15:02,176 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,1]
+-- 2026-09-07 01:15:02,176 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,182 INFO  [load-dynamic-partitions-1] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=4
+-- 2026-09-07 01:15:02,193 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,10]
+-- 2026-09-07 01:15:02,194 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: get_database: @hive#default
+-- 2026-09-07 01:15:02,195 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,10]
+-- 2026-09-07 01:15:02,196 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,202 INFO  [load-dynamic-partitions-3] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=1
+-- 2026-09-07 01:15:02,218 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,9]
+-- 2026-09-07 01:15:02,219 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2023,9]
+-- 2026-09-07 01:15:02,218 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: get_database: @hive#default
+-- 2026-09-07 01:15:02,225 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,230 INFO  [load-dynamic-partitions-12] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=10
+-- 2026-09-07 01:15:02,241 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,9]
+-- 2026-09-07 01:15:02,241 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: get_database: @hive#default
+-- 2026-09-07 01:15:02,242 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,9]
+-- 2026-09-07 01:15:02,242 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,254 INFO  [load-dynamic-partitions-13] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2023/month=9
+-- 2026-09-07 01:15:02,260 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,7]
+-- 2026-09-07 01:15:02,260 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: get_database: @hive#default
+-- 2026-09-07 01:15:02,263 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,7]
+-- 2026-09-07 01:15:02,264 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,271 INFO  [load-dynamic-partitions-9] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=9
+-- 2026-09-07 01:15:02,277 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,3]
+-- 2026-09-07 01:15:02,277 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: get_database: @hive#default
+-- 2026-09-07 01:15:02,282 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_partition_with_auth : tbl=hive.default.transactions_particionada[2024,3]
+-- 2026-09-07 01:15:02,282 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,286 INFO  [load-dynamic-partitions-6] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=7
+-- 2026-09-07 01:15:02,293 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: get_database: @hive#default
+-- 2026-09-07 01:15:02,293 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=get_database: @hive#default
+-- 2026-09-07 01:15:02,294 INFO  [load-dynamic-partitions-3] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 13: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,299 INFO  [load-dynamic-partitions-3] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,300 INFO  [load-dynamic-partitions-2] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/year=2024/month=3
+-- 2026-09-07 01:15:02,403 INFO  [load-dynamic-partitions-1] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 15: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,405 INFO  [load-dynamic-partitions-1] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,433 INFO  [load-dynamic-partitions-7] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 6: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,435 INFO  [load-dynamic-partitions-7] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,460 INFO  [load-dynamic-partitions-4] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 16: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,464 INFO  [load-dynamic-partitions-4] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,680 INFO  [load-dynamic-partitions-9] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 8: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,682 INFO  [load-dynamic-partitions-9] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,708 INFO  [load-dynamic-partitions-2] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 14: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,709 INFO  [load-dynamic-partitions-2] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,731 INFO  [load-dynamic-partitions-6] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 11: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,732 INFO  [load-dynamic-partitions-6] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                 ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,754 INFO  [load-dynamic-partitions-13] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 4: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,755 INFO  [load-dynamic-partitions-13] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,774 INFO  [load-dynamic-partitions-12] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 3: add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,775 INFO  [load-dynamic-partitions-12] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                                ip=unknown-ip-addr       cmd=add_partition : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:02,823 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metadata.Hive (Hive.java:loadDynamicPartitions(2310)) - Loaded 24 partitions
+--          Time taken to load dynamic partitions: 3.356 seconds
+-- 2026-09-07 01:15:02,878 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -                                               Time taken to load dynamic partitions: 3.356 seconds
+-- 2026-09-07 01:15:02,880 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(535)) -                                           Time taken to load dynamic partitions: 3.356 seconds
+-- 2026-09-07 01:15:02,939 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=2}
+-- 2026-09-07 01:15:02,941 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=6}
+-- 2026-09-07 01:15:02,943 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=1}
+-- 2026-09-07 01:15:02,946 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=5}
+-- 2026-09-07 01:15:02,949 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=11}
+-- 2026-09-07 01:15:02,951 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=12}
+-- 2026-09-07 01:15:02,954 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=5}
+-- 2026-09-07 01:15:02,956 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=4}
+-- 2026-09-07 01:15:02,958 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=7}
+-- 2026-09-07 01:15:02,961 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=8}
+-- 2026-09-07 01:15:02,968 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=3}
+-- 2026-09-07 01:15:02,972 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=10}
+-- 2026-09-07 01:15:02,973 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=12}
+-- 2026-09-07 01:15:02,974 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=11}
+-- 2026-09-07 01:15:02,975 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=2}
+-- 2026-09-07 01:15:02,977 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=1}
+-- 2026-09-07 01:15:02,980 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=4}
+-- 2026-09-07 01:15:02,984 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=8}
+-- 2026-09-07 01:15:02,985 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=6}
+-- 2026-09-07 01:15:02,985 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=9}
+-- 2026-09-07 01:15:02,986 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=3}
+-- 2026-09-07 01:15:02,987 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2024, month=7}
+-- 2026-09-07 01:15:02,988 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=9}
+-- 2026-09-07 01:15:02,989 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.MoveTask (MoveTask.java:handleDynParts(578)) - Loading partition {year=2023, month=10}
+--          Time taken for adding to write entity : 0.108 seconds
+-- 2026-09-07 01:15:02,990 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -                                               Time taken for adding to write entity : 0.108 seconds
+-- 2026-09-07 01:15:03,245 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-2:STATS] in serial mode
+-- 2026-09-07 01:15:03,246 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-07 01:15:03,247 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Cleaning up thread local RawStore...
+-- 2026-09-07 01:15:03,248 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,249 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,250 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,251 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,252 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,253 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=Done cleaning up thread local RawStore
+-- 2026-09-07 01:15:03,254 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:process(96)) - Executing stats task
+-- 2026-09-07 01:15:03,259 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] fs.FSStatsPublisher (FSStatsPublisher.java:init(53)) - created : hdfs://localhost:9000/user/hive/warehouse/transactions_particionada/.hive-staging_hive_2026-09-07_01-13-37_942_2179970851710009640-1/-ext-10001
+-- 2026-09-07 01:15:03,494 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-07 01:15:03,496 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-07 01:15:03,500 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-07 01:15:03,502 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-07 01:15:03,503 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-07 01:15:03,504 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-07 01:15:03,505 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:03,506 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:03,601 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=2/   numRows 3956
+-- 2026-09-07 01:15:03,603 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=2/   rawDataSize     193609
+-- 2026-09-07 01:15:03,608 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=2} stats: [numFiles=1, numRows=3956, totalSize=197565, rawDataSize=193609]
+-- 2026-09-07 01:15:03,609 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=6/   numRows 4130
+-- 2026-09-07 01:15:03,610 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=6/   rawDataSize     201748
+-- 2026-09-07 01:15:03,612 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=6} stats: [numFiles=1, numRows=4130, totalSize=205878, rawDataSize=201748]
+-- 2026-09-07 01:15:03,613 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=1/   numRows 4184
+-- 2026-09-07 01:15:03,614 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=1/   rawDataSize     204685
+-- 2026-09-07 01:15:03,616 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=1} stats: [numFiles=1, numRows=4184, totalSize=208869, rawDataSize=204685]
+-- 2026-09-07 01:15:03,621 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=5/   numRows 4353
+-- 2026-09-07 01:15:03,622 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=5/   rawDataSize     213031
+-- 2026-09-07 01:15:03,623 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=5} stats: [numFiles=1, numRows=4353, totalSize=217384, rawDataSize=213031]
+-- 2026-09-07 01:15:03,624 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=11/  numRows 4185
+-- 2026-09-07 01:15:03,625 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=11/  rawDataSize     204960
+-- 2026-09-07 01:15:03,626 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=11} stats: [numFiles=1, numRows=4185, totalSize=209145, rawDataSize=204960]
+-- 2026-09-07 01:15:03,628 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=12/  numRows 4210
+-- 2026-09-07 01:15:03,629 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=12/  rawDataSize     205800
+-- 2026-09-07 01:15:03,630 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=12} stats: [numFiles=1, numRows=4210, totalSize=210010, rawDataSize=205800]
+-- 2026-09-07 01:15:03,636 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=5/   numRows 4338
+-- 2026-09-07 01:15:03,637 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=5/   rawDataSize     212653
+-- 2026-09-07 01:15:03,638 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=5} stats: [numFiles=1, numRows=4338, totalSize=216991, rawDataSize=212653]
+-- 2026-09-07 01:15:03,639 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=4/   numRows 4042
+-- 2026-09-07 01:15:03,641 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=4/   rawDataSize     197883
+-- 2026-09-07 01:15:03,642 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=4} stats: [numFiles=1, numRows=4042, totalSize=201925, rawDataSize=197883]
+-- 2026-09-07 01:15:03,643 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=7/   numRows 4177
+-- 2026-09-07 01:15:03,644 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=7/   rawDataSize     204259
+-- 2026-09-07 01:15:03,646 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=7} stats: [numFiles=1, numRows=4177, totalSize=208436, rawDataSize=204259]
+-- 2026-09-07 01:15:03,652 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=8/   numRows 4199
+-- 2026-09-07 01:15:03,653 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=8/   rawDataSize     205832
+-- 2026-09-07 01:15:03,654 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=8} stats: [numFiles=1, numRows=4199, totalSize=210031, rawDataSize=205832]
+-- 2026-09-07 01:15:03,655 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=3/   numRows 4266
+-- 2026-09-07 01:15:03,656 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=3/   rawDataSize     208733
+-- 2026-09-07 01:15:03,657 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=3} stats: [numFiles=1, numRows=4266, totalSize=212999, rawDataSize=208733]
+-- 2026-09-07 01:15:03,659 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=10/  numRows 4273
+-- 2026-09-07 01:15:03,660 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=10/  rawDataSize     209303
+-- 2026-09-07 01:15:03,662 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=10} stats: [numFiles=1, numRows=4273, totalSize=213576, rawDataSize=209303]
+-- 2026-09-07 01:15:03,667 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=12/  numRows 4253
+-- 2026-09-07 01:15:03,668 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=12/  rawDataSize     208514
+-- 2026-09-07 01:15:03,670 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=12} stats: [numFiles=1, numRows=4253, totalSize=212767, rawDataSize=208514]
+-- 2026-09-07 01:15:03,671 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=11/  numRows 4017
+-- 2026-09-07 01:15:03,672 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=11/  rawDataSize     196824
+-- 2026-09-07 01:15:03,673 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=11} stats: [numFiles=1, numRows=4017, totalSize=200841, rawDataSize=196824]
+-- 2026-09-07 01:15:03,674 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=2/   numRows 3787
+-- 2026-09-07 01:15:03,675 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=2/   rawDataSize     185356
+-- 2026-09-07 01:15:03,677 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=2} stats: [numFiles=1, numRows=3787, totalSize=189143, rawDataSize=185356]
+-- 2026-09-07 01:15:03,684 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=1/   numRows 4276
+-- 2026-09-07 01:15:03,684 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=1/   rawDataSize     209323
+-- 2026-09-07 01:15:03,686 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=1} stats: [numFiles=1, numRows=4276, totalSize=213599, rawDataSize=209323]
+-- 2026-09-07 01:15:03,687 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=4/   numRows 4231
+-- 2026-09-07 01:15:03,688 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=4/   rawDataSize     207385
+-- 2026-09-07 01:15:03,689 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=4} stats: [numFiles=1, numRows=4231, totalSize=211616, rawDataSize=207385]
+-- 2026-09-07 01:15:03,691 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=8/   numRows 4157
+-- 2026-09-07 01:15:03,692 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=8/   rawDataSize     203454
+-- 2026-09-07 01:15:03,697 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=8} stats: [numFiles=1, numRows=4157, totalSize=207611, rawDataSize=203454]
+-- 2026-09-07 01:15:03,698 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=6/   numRows 4069
+-- 2026-09-07 01:15:03,699 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=6/   rawDataSize     199191
+-- 2026-09-07 01:15:03,700 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=6} stats: [numFiles=1, numRows=4069, totalSize=203260, rawDataSize=199191]
+-- 2026-09-07 01:15:03,702 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=9/   numRows 4132
+-- 2026-09-07 01:15:03,703 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=9/   rawDataSize     202499
+-- 2026-09-07 01:15:03,704 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=9} stats: [numFiles=1, numRows=4132, totalSize=206631, rawDataSize=202499]
+-- 2026-09-07 01:15:03,705 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=3/   numRows 4214
+-- 2026-09-07 01:15:03,706 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=3/   rawDataSize     206425
+-- 2026-09-07 01:15:03,707 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=3} stats: [numFiles=1, numRows=4214, totalSize=210639, rawDataSize=206425]
+-- 2026-09-07 01:15:03,708 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=7/   numRows 4136
+-- 2026-09-07 01:15:03,715 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2024/month=7/   rawDataSize     202711
+-- 2026-09-07 01:15:03,716 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2024, month=7} stats: [numFiles=1, numRows=4136, totalSize=206847, rawDataSize=202711]
+-- 2026-09-07 01:15:03,717 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=9/   numRows 4061
+-- 2026-09-07 01:15:03,718 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=9/   rawDataSize     198715
+-- 2026-09-07 01:15:03,719 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=9} stats: [numFiles=1, numRows=4061, totalSize=202776, rawDataSize=198715]
+-- 2026-09-07 01:15:03,721 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=10/  numRows 4350
+-- 2026-09-07 01:15:03,722 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.transactions_particionada/year=2023/month=10/  rawDataSize     213027
+-- 2026-09-07 01:15:03,723 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(339)) - Partition {year=2023, month=10} stats: [numFiles=1, numRows=4350, totalSize=217377, rawDataSize=213027]
+-- 2026-09-07 01:15:03,727 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: alter_partitions : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:03,740 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=alter_partitions : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:15:03,743 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 2]
+-- 2026-09-07 01:15:03,746 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 6]
+-- 2026-09-07 01:15:03,748 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 1]
+-- 2026-09-07 01:15:03,750 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 5]
+-- 2026-09-07 01:15:03,752 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 11]
+-- 2026-09-07 01:15:03,754 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 12]
+-- 2026-09-07 01:15:03,755 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 5]
+-- 2026-09-07 01:15:03,756 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 4]
+-- 2026-09-07 01:15:03,763 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 7]
+-- 2026-09-07 01:15:03,764 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 8]
+-- 2026-09-07 01:15:03,766 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 3]
+-- 2026-09-07 01:15:03,767 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 10]
+-- 2026-09-07 01:15:03,768 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 12]
+-- 2026-09-07 01:15:03,769 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 11]
+-- 2026-09-07 01:15:03,770 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 2]
+-- 2026-09-07 01:15:03,771 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 1]
+-- 2026-09-07 01:15:03,777 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 4]
+-- 2026-09-07 01:15:03,777 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 8]
+-- 2026-09-07 01:15:03,779 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 6]
+-- 2026-09-07 01:15:03,780 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 9]
+-- 2026-09-07 01:15:03,781 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 3]
+-- 2026-09-07 01:15:03,783 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2024, 7]
+-- 2026-09-07 01:15:03,783 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 9]
+-- 2026-09-07 01:15:03,785 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:alter_partitions_with_environment_context(4904)) - New partition values:[2023, 10]
+-- 2026-09-07 01:15:04,294 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.input.dir is deprecated. Instead, use mapreduce.input.fileinputformat.inputdir
+-- 2026-09-07 01:15:04,310 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-07 01:15:06,435 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=12
+-- 2026-09-07 01:15:06,436 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=12
+-- 2026-09-07 01:15:06,606 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=transaction_id
+-- 2026-09-07 01:15:06,649 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=customer_id
+-- 2026-09-07 01:15:06,652 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=amount
+-- 2026-09-07 01:15:06,657 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=transaction_type
+-- 2026-09-07 01:15:06,659 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=status
+-- 2026-09-07 01:15:06,661 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=risk_score
+-- 2026-09-07 01:15:06,664 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=12 colName=is_fraud
+-- 2026-09-07 01:15:06,674 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=10
+-- 2026-09-07 01:15:06,675 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=10
+-- 2026-09-07 01:15:06,693 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=transaction_id
+-- 2026-09-07 01:15:06,696 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=customer_id
+-- 2026-09-07 01:15:06,701 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=amount
+-- 2026-09-07 01:15:06,703 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=transaction_type
+-- 2026-09-07 01:15:06,705 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=status
+-- 2026-09-07 01:15:06,707 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=risk_score
+-- 2026-09-07 01:15:06,709 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=10 colName=is_fraud
+-- 2026-09-07 01:15:06,721 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=11
+-- 2026-09-07 01:15:06,722 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=11
+-- 2026-09-07 01:15:06,742 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=transaction_id
+-- 2026-09-07 01:15:06,744 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=customer_id
+-- 2026-09-07 01:15:06,750 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=amount
+-- 2026-09-07 01:15:06,751 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=transaction_type
+-- 2026-09-07 01:15:06,752 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=status
+-- 2026-09-07 01:15:06,754 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=risk_score
+-- 2026-09-07 01:15:06,755 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=11 colName=is_fraud
+-- 2026-09-07 01:15:06,764 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=1
+-- 2026-09-07 01:15:06,765 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=1
+-- 2026-09-07 01:15:06,776 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=transaction_id
+-- 2026-09-07 01:15:06,778 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=customer_id
+-- 2026-09-07 01:15:06,782 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=amount
+-- 2026-09-07 01:15:06,784 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=transaction_type
+-- 2026-09-07 01:15:06,786 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=status
+-- 2026-09-07 01:15:06,847 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=risk_score
+-- 2026-09-07 01:15:06,850 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=1 colName=is_fraud
+-- 2026-09-07 01:15:06,859 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=3
+-- 2026-09-07 01:15:06,860 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=3
+-- 2026-09-07 01:15:06,874 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=transaction_id
+-- 2026-09-07 01:15:06,875 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=customer_id
+-- 2026-09-07 01:15:06,877 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=amount
+-- 2026-09-07 01:15:06,881 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=transaction_type
+-- 2026-09-07 01:15:06,887 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=status
+-- 2026-09-07 01:15:06,889 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=risk_score
+-- 2026-09-07 01:15:06,891 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=3 colName=is_fraud
+-- 2026-09-07 01:15:06,900 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=2
+-- 2026-09-07 01:15:06,902 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=2
+-- 2026-09-07 01:15:06,931 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=transaction_id
+-- 2026-09-07 01:15:06,935 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=customer_id
+-- 2026-09-07 01:15:06,939 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=amount
+-- 2026-09-07 01:15:06,941 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=transaction_type
+-- 2026-09-07 01:15:06,944 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=status
+-- 2026-09-07 01:15:06,949 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=risk_score
+-- 2026-09-07 01:15:06,951 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=2 colName=is_fraud
+-- 2026-09-07 01:15:06,957 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=1
+-- 2026-09-07 01:15:06,958 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=1
+-- 2026-09-07 01:15:06,973 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=transaction_id
+-- 2026-09-07 01:15:06,975 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=customer_id
+-- 2026-09-07 01:15:06,976 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=amount
+-- 2026-09-07 01:15:06,980 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=transaction_type
+-- 2026-09-07 01:15:06,985 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=status
+-- 2026-09-07 01:15:06,987 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=risk_score
+-- 2026-09-07 01:15:06,989 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=1 colName=is_fraud
+-- 2026-09-07 01:15:06,996 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=2
+-- 2026-09-07 01:15:06,998 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=2
+-- 2026-09-07 01:15:07,013 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=transaction_id
+-- 2026-09-07 01:15:07,016 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=customer_id
+-- 2026-09-07 01:15:07,018 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=amount
+-- 2026-09-07 01:15:07,020 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=transaction_type
+-- 2026-09-07 01:15:07,022 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=status
+-- 2026-09-07 01:15:07,023 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=risk_score
+-- 2026-09-07 01:15:07,030 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=2 colName=is_fraud
+-- 2026-09-07 01:15:07,038 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=3
+-- 2026-09-07 01:15:07,039 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=3
+-- 2026-09-07 01:15:07,056 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=transaction_id
+-- 2026-09-07 01:15:07,058 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=customer_id
+-- 2026-09-07 01:15:07,064 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=amount
+-- 2026-09-07 01:15:07,065 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=transaction_type
+-- 2026-09-07 01:15:07,066 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=status
+-- 2026-09-07 01:15:07,068 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=risk_score
+-- 2026-09-07 01:15:07,070 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=3 colName=is_fraud
+-- 2026-09-07 01:15:07,080 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=4
+-- 2026-09-07 01:15:07,081 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=4
+-- 2026-09-07 01:15:07,103 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=transaction_id
+-- 2026-09-07 01:15:07,105 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=customer_id
+-- 2026-09-07 01:15:07,110 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=amount
+-- 2026-09-07 01:15:07,113 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=transaction_type
+-- 2026-09-07 01:15:07,115 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=status
+-- 2026-09-07 01:15:07,116 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=risk_score
+-- 2026-09-07 01:15:07,118 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=4 colName=is_fraud
+-- 2026-09-07 01:15:07,123 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=5
+-- 2026-09-07 01:15:07,124 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=5
+-- 2026-09-07 01:15:07,135 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=transaction_id
+-- 2026-09-07 01:15:07,138 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=customer_id
+-- 2026-09-07 01:15:07,139 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=amount
+-- 2026-09-07 01:15:07,140 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=transaction_type
+-- 2026-09-07 01:15:07,142 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=status
+-- 2026-09-07 01:15:07,148 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=risk_score
+-- 2026-09-07 01:15:07,151 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=5 colName=is_fraud
+-- 2026-09-07 01:15:07,156 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=9
+-- 2026-09-07 01:15:07,157 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=9
+-- 2026-09-07 01:15:07,177 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=transaction_id
+-- 2026-09-07 01:15:07,182 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=customer_id
+-- 2026-09-07 01:15:07,184 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=amount
+-- 2026-09-07 01:15:07,185 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=transaction_type
+-- 2026-09-07 01:15:07,188 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=status
+-- 2026-09-07 01:15:07,189 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=risk_score
+-- 2026-09-07 01:15:07,195 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=9 colName=is_fraud
+-- 2026-09-07 01:15:07,201 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=11
+-- 2026-09-07 01:15:07,201 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=11
+-- 2026-09-07 01:15:07,215 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=transaction_id
+-- 2026-09-07 01:15:07,216 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=customer_id
+-- 2026-09-07 01:15:07,219 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=amount
+-- 2026-09-07 01:15:07,220 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=transaction_type
+-- 2026-09-07 01:15:07,227 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=status
+-- 2026-09-07 01:15:07,229 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=risk_score
+-- 2026-09-07 01:15:07,231 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=11 colName=is_fraud
+-- 2026-09-07 01:15:07,239 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=6
+-- 2026-09-07 01:15:07,241 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=6
+-- 2026-09-07 01:15:07,255 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=transaction_id
+-- 2026-09-07 01:15:07,257 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=customer_id
+-- 2026-09-07 01:15:07,262 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=amount
+-- 2026-09-07 01:15:07,264 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=transaction_type
+-- 2026-09-07 01:15:07,265 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=status
+-- 2026-09-07 01:15:07,268 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=risk_score
+-- 2026-09-07 01:15:07,274 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=6 colName=is_fraud
+-- 2026-09-07 01:15:07,281 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=8
+-- 2026-09-07 01:15:07,282 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=8
+-- 2026-09-07 01:15:07,296 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=transaction_id
+-- 2026-09-07 01:15:07,297 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=customer_id
+-- 2026-09-07 01:15:07,300 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=amount
+-- 2026-09-07 01:15:07,304 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=transaction_type
+-- 2026-09-07 01:15:07,306 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=status
+-- 2026-09-07 01:15:07,307 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=risk_score
+-- 2026-09-07 01:15:07,308 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=8 colName=is_fraud
+-- 2026-09-07 01:15:07,315 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=12
+-- 2026-09-07 01:15:07,318 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=12
+-- 2026-09-07 01:15:07,329 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=transaction_id
+-- 2026-09-07 01:15:07,332 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=customer_id
+-- 2026-09-07 01:15:07,335 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=amount
+-- 2026-09-07 01:15:07,337 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=transaction_type
+-- 2026-09-07 01:15:07,338 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=status
+-- 2026-09-07 01:15:07,339 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=risk_score
+-- 2026-09-07 01:15:07,341 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=12 colName=is_fraud
+-- 2026-09-07 01:15:07,348 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=7
+-- 2026-09-07 01:15:07,350 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=7
+-- 2026-09-07 01:15:07,381 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=transaction_id
+-- 2026-09-07 01:15:07,384 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=customer_id
+-- 2026-09-07 01:15:07,388 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=amount
+-- 2026-09-07 01:15:07,392 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=transaction_type
+-- 2026-09-07 01:15:07,396 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=status
+-- 2026-09-07 01:15:07,397 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=risk_score
+-- 2026-09-07 01:15:07,399 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=7 colName=is_fraud
+-- 2026-09-07 01:15:07,409 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=8
+-- 2026-09-07 01:15:07,409 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=8
+-- 2026-09-07 01:15:07,422 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=transaction_id
+-- 2026-09-07 01:15:07,424 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=customer_id
+-- 2026-09-07 01:15:07,426 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=amount
+-- 2026-09-07 01:15:07,429 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=transaction_type
+-- 2026-09-07 01:15:07,430 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=status
+-- 2026-09-07 01:15:07,436 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=risk_score
+-- 2026-09-07 01:15:07,437 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=8 colName=is_fraud
+-- 2026-09-07 01:15:07,444 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=9
+-- 2026-09-07 01:15:07,445 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2023/month=9
+-- 2026-09-07 01:15:07,458 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=transaction_id
+-- 2026-09-07 01:15:07,460 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=customer_id
+-- 2026-09-07 01:15:07,462 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=amount
+-- 2026-09-07 01:15:07,468 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=transaction_type
+-- 2026-09-07 01:15:07,470 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=status
+-- 2026-09-07 01:15:07,472 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=risk_score
+-- 2026-09-07 01:15:07,473 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2023/month=9 colName=is_fraud
+-- 2026-09-07 01:15:07,482 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=5
+-- 2026-09-07 01:15:07,483 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=5
+-- 2026-09-07 01:15:07,492 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=transaction_id
+-- 2026-09-07 01:15:07,498 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=customer_id
+-- 2026-09-07 01:15:07,499 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=amount
+-- 2026-09-07 01:15:07,501 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=transaction_type
+-- 2026-09-07 01:15:07,503 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=status
+-- 2026-09-07 01:15:07,504 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=risk_score
+-- 2026-09-07 01:15:07,505 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=5 colName=is_fraud
+-- 2026-09-07 01:15:07,624 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=4
+-- 2026-09-07 01:15:07,626 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=4
+-- 2026-09-07 01:15:07,637 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=transaction_id
+-- 2026-09-07 01:15:07,639 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=customer_id
+-- 2026-09-07 01:15:07,641 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=amount
+-- 2026-09-07 01:15:07,642 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=transaction_type
+-- 2026-09-07 01:15:07,643 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=status
+-- 2026-09-07 01:15:07,645 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=risk_score
+-- 2026-09-07 01:15:07,647 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=4 colName=is_fraud
+-- 2026-09-07 01:15:07,656 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=7
+-- 2026-09-07 01:15:07,657 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=7
+-- 2026-09-07 01:15:07,668 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=transaction_id
+-- 2026-09-07 01:15:07,670 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=customer_id
+-- 2026-09-07 01:15:07,671 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=amount
+-- 2026-09-07 01:15:07,673 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=transaction_type
+-- 2026-09-07 01:15:07,675 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=status
+-- 2026-09-07 01:15:07,676 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=risk_score
+-- 2026-09-07 01:15:07,677 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=7 colName=is_fraud
+-- 2026-09-07 01:15:07,685 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=6
+-- 2026-09-07 01:15:07,687 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=6
+-- 2026-09-07 01:15:07,699 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=transaction_id
+-- 2026-09-07 01:15:07,700 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=customer_id
+-- 2026-09-07 01:15:07,705 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=amount
+-- 2026-09-07 01:15:07,707 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=transaction_type
+-- 2026-09-07 01:15:07,708 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=status
+-- 2026-09-07 01:15:07,714 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=risk_score
+-- 2026-09-07 01:15:07,717 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=6 colName=is_fraud
+-- 2026-09-07 01:15:07,724 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=10
+-- 2026-09-07 01:15:07,725 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=write_partition_column_statistics:  db=default table=transactions_particionada part=year=2024/month=10
+-- 2026-09-07 01:15:07,739 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=transaction_id
+-- 2026-09-07 01:15:07,741 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=customer_id
+-- 2026-09-07 01:15:07,744 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=amount
+-- 2026-09-07 01:15:07,750 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=transaction_type
+-- 2026-09-07 01:15:07,751 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=status
+-- 2026-09-07 01:15:07,753 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=risk_score
+-- 2026-09-07 01:15:07,755 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.ObjectStore (ObjectStore.java:writeMPartitionColumnStatistics(8204)) - Updating partition level column statistics for table=hive.default.transactions_particionada partName=year=2024/month=10 colName=is_fraud
+-- 2026-09-07 01:15:07,760 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metadata.Hive (Hive.java:logDumpPhase(4672)) - Dumping metastore api call timing information for : execution phase
+-- 2026-09-07 01:15:07,762 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metadata.Hive (Hive.java:dumpAndClearMetaCallTiming(4660)) - Total time spent in this metastore function was greater than 1000ms : setPartitionColumnStatistics_(SetPartitionsStatsRequest, )=2505
+-- MapReduce Jobs Launched:
+-- 2026-09-07 01:15:07,764 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 14.34 sec   HDFS Read: 7220426 HDFS Write: 5096987 SUCCESS
+-- 2026-09-07 01:15:07,765 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 14.34 sec   HDFS Read: 7220426 HDFS Write: 5096987 SUCCESS
+-- Total MapReduce CPU Time Spent: 14 seconds 340 msec
+-- 2026-09-07 01:15:07,767 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 14 seconds 340 msec
+-- 2026-09-07 01:15:07,768 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907011337_46aafe6e-07f1-493a-a8ae-1a1ba124bea4); Time taken: 85.404 seconds
+-- OK
+-- 2026-09-07 01:15:07,770 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:15:07,771 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- Time taken: 89.854 seconds
+-- 2026-09-07 01:15:07,776 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 89.854 seconds
+-- 2026-09-07 01:15:07,780 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:15:07,781 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
+
+#----------------------------------------------------------------------------------------------------
+### Passo 4 — Confirmar as partições
+
+```sql
+SHOW PARTITIONS transactions_particionada;
+```
+-- hive> SHOW PARTITIONS transactions_particionada;
+-- 2026-09-07 01:20:00,472 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:20:00,472 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- 2026-09-07 01:20:00,474 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907012000_b1ce37df-0560-483c-8d46-df87f76701a1): SHOW PARTITIONS transactions_particionada
+-- 2026-09-07 01:20:00,532 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:20:00,534 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,535 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,541 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,541 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,557 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,558 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,564 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:20:00,564 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:partition, type:string, comment:from deserializer)], properties:null)
+-- 2026-09-07 01:20:00,566 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[0]
+-- 2026-09-07 01:20:00,599 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907012000_b1ce37df-0560-483c-8d46-df87f76701a1); Time taken: 0.125 seconds
+-- 2026-09-07 01:20:00,600 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:20:00,601 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:20:00,606 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907012000_b1ce37df-0560-483c-8d46-df87f76701a1): SHOW PARTITIONS transactions_particionada
+-- 2026-09-07 01:20:00,608 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:DDL] in serial mode
+-- 2026-09-07 01:20:00,609 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,610 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,616 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_partition_names : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,619 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_partition_names : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:20:00,640 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907012000_b1ce37df-0560-483c-8d46-df87f76701a1); Time taken: 0.033 seconds
+-- OK
+-- 2026-09-07 01:20:00,641 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:20:00,642 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:20:00,645 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-07 01:20:00,735 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_0:24,
+-- year=2023/month=1
+-- year=2023/month=10
+-- year=2023/month=11
+-- year=2023/month=12
+-- year=2023/month=2
+-- year=2023/month=3
+-- year=2023/month=4
+-- year=2023/month=5
+-- year=2023/month=6
+-- year=2023/month=7
+-- year=2023/month=8
+-- year=2023/month=9
+-- year=2024/month=1
+-- year=2024/month=10
+-- year=2024/month=11
+-- year=2024/month=12
+-- year=2024/month=2
+-- year=2024/month=3
+-- year=2024/month=4
+-- year=2024/month=5
+-- year=2024/month=6
+-- year=2024/month=7
+-- year=2024/month=8
+-- year=2024/month=9
+-- Time taken: 0.169 seconds, Fetched: 24 row(s)
+-- 2026-09-07 01:20:00,763 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 0.169 seconds, Fetched: 24 row(s)
+-- 2026-09-07 01:20:00,763 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:20:00,765 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
+
+#----------------------------------------------------------------------------------------------------
+### Passo 5 — Medir a diferença de tempo
+
+```sql
+-- SEM aproveitar partição (varre tudo)
+SELECT COUNT(*) FROM raw_transactions WHERE MONTH(ts) = 1;
+
+-- COM partição (Hive só lê a pasta de janeiro)
+SELECT COUNT(*) FROM transactions_particionada WHERE month = 1;
+```
+
+-- hive> -- SEM aproveitar partição (varre tudo)
+-- SELECT COUNT(*) FROM raw_transactions WHEREhive>  MONTH(ts) = 1;
+
+-- -- COM partição (Hive só lê a pasta de janeiro)
+-- SELECT COUNT(*) FR2026-09-07 01:21:12,794 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- OM tra2026-09-07 01:21:12,795 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- nsactions_particionada WHERE month2026-09-07 01:21:12,796 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0): SELECT COUNT(*) FROM raw_transactions WHERE MONTH(ts) = 1
+--  = 1;
+-- 2026-09-07 01:21:12,822 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:21:12,822 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-07 01:21:12,824 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-07 01:21:12,825 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:21:12,827 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,828 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,834 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:21:12,835 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:21:12,867 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1
+-- 2026-09-07 01:21:12,869 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-07 01:21:12,909 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] results.QueryResultsCache (QueryResultsCache.java:<init>(367)) - Initializing query results cache at /tmp/hive/_resultscache_
+-- 2026-09-07 01:21:12,943 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] results.QueryResultsCache (QueryResultsCache.java:<init>(388)) - Query results cache: cacheDirectory /tmp/hive/_resultscache_/results-d759ece0-8f63-4bb0-afb0-36ed7efc80a0, maxCacheSize 2147483648, maxEntrySize 10485760, maxEntryLifetime 3600000
+-- 2026-09-07 01:21:12,957 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,957 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_not_null_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,963 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,967 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,970 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,970 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,972 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,973 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_unique_constraints : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:12,975 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=raw_transactions
+-- 2026-09-07 01:21:12,976 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=raw_transactions
+-- 2026-09-07 01:21:13,224 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-07 01:21:13,225 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_databases: @hive#
+-- 2026-09-07 01:21:13,227 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:21:13,229 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:21:13,237 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:21:13,238 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:13,239 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.raw_transactions
+-- 2026-09-07 01:21:13,247 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:21:13,247 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:21:13,250 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1
+-- 2026-09-07 01:21:13,253 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1/-mr-10001/.hive-staging_hive_2026-09-07_01-21-12_820_4924630470715905571-1
+-- 2026-09-07 01:21:13,268 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-07 01:21:13,272 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(7)
+-- 2026-09-07 01:21:13,272 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(6)
+-- 2026-09-07 01:21:13,273 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(5)
+-- 2026-09-07 01:21:13,277 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(4)
+-- 2026-09-07 01:21:13,278 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(3)
+-- 2026-09-07 01:21:13,278 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(2)
+-- 2026-09-07 01:21:13,280 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(1)
+-- 2026-09-07 01:21:13,286 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-07 01:21:13,296 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 4 oldColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-07 01:21:13,297 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 4 newColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-07 01:21:13,332 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-07 01:21:13,333 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.mapred.TextInputFormat]
+-- 2026-09-07 01:21:13,338 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-07 01:21:13,366 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:validateGroupByOperator(2688)) - Vector GROUP BY operator will use processing mode HASH
+-- 2026-09-07 01:21:13,396 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-07 01:21:13,402 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-07 01:21:13,403 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-07 01:21:13,404 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vector.serde.deserialize IS true]
+-- 2026-09-07 01:21:13,406 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.mapred.TextInputFormat]
+-- 2026-09-07 01:21:13,407 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-07 01:21:13,408 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-07 01:21:13,408 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 1
+-- 2026-09-07 01:21:13,409 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-07 01:21:13,411 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-07 01:21:13,412 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-07 01:21:13,418 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14789)) - Not eligible for results caching - default.raw_transactions is an external table
+-- 2026-09-07 01:21:13,419 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:21:13,420 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:_c0, type:bigint, comment:null)], properties:null)
+-- 2026-09-07 01:21:13,422 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[13]
+-- 2026-09-07 01:21:13,423 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0); Time taken: 0.626 seconds
+-- 2026-09-07 01:21:13,424 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:21:13,424 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:21:13,425 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0): SELECT COUNT(*) FROM raw_transactions WHERE MONTH(ts) = 1
+-- 2026-09-07 01:21:13,427 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0
+-- 2026-09-07 01:21:13,433 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0
+-- Total jobs = 1
+-- 2026-09-07 01:21:13,435 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 1
+-- Launching Job 1 out of 1
+-- 2026-09-07 01:21:13,436 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 1
+-- 2026-09-07 01:21:13,441 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-1:MAPRED] in serial mode
+-- Number of reduce tasks determined at compile time: 1
+-- 2026-09-07 01:21:13,442 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks determined at compile time: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-07 01:21:13,449 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-07 01:21:13,451 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-07 01:21:13,453 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-07 01:21:13,455 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-07 01:21:13,456 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-07 01:21:13,457 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-07 01:21:13,458 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1
+-- 2026-09-07 01:21:13,484 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-07 01:21:13,485 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias raw_transactions
+-- 2026-09-07 01:21:13,486 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/bigdata/raw/transactions
+-- 2026-09-07 01:21:13,488 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1
+-- 2026-09-07 01:21:13,493 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-07 01:21:13,570 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 7.89KB
+-- 2026-09-07 01:21:13,585 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-07 01:21:13,694 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 7.81KB
+-- 2026-09-07 01:21:13,752 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-07 01:21:13,782 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-07 01:21:13,784 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1/-mr-10005/3838ff1c-1123-49ec-b92e-8e600bcc5160/map.xml
+-- 2026-09-07 01:21:13,786 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1/-mr-10005/3838ff1c-1123-49ec-b92e-8e600bcc5160/reduce.xml
+-- 2026-09-07 01:21:13,895 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-07 01:21:13,900 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1788746338495_0008
+-- 2026-09-07 01:21:14,643 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-12_820_4924630470715905571-1/-mr-10005/3838ff1c-1123-49ec-b92e-8e600bcc5160/map.xml
+-- 2026-09-07 01:21:14,649 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-07 01:21:14,651 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/bigdata/raw/transactions; using filter path hdfs://localhost:9000/user/bigdata/raw/transactions
+-- 2026-09-07 01:21:14,664 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 4
+-- 2026-09-07 01:21:14,665 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-07 01:21:14,669 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-07 01:21:15,219 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-07 01:21:15,264 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1788746338495_0008
+-- 2026-09-07 01:21:15,266 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-07 01:21:15,539 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1788746338495_0008
+-- 2026-09-07 01:21:15,590 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0008/
+-- Starting Job = job_1788746338495_0008, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0008/
+-- 2026-09-07 01:21:15,591 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1788746338495_0008, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1788746338495_0008/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1788746338495_0008
+-- 2026-09-07 01:21:15,597 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1788746338495_0008
+-- Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-07 01:21:28,961 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-07 01:21:29,024 WARN  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-07 01:21:29,024 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-07 01:21:29,026 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:21:29,024 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-07 01:21:37,479 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 5.83 sec
+-- 2026-09-07 01:21:37,479 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:21:37,479 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 5.83 sec
+-- 2026-09-07 01:21:53,301 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 9.88 sec
+-- 2026-09-07 01:21:53,305 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-07 01:21:53,301 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 9.88 sec
+-- MapReduce Total cumulative CPU time: 9 seconds 880 msec
+-- 2026-09-07 01:21:56,434 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 9 seconds 880 msec
+-- Ended Job = job_1788746338495_0008
+-- 2026-09-07 01:21:56,450 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1788746338495_0008
+-- MapReduce Jobs Launched:
+-- 2026-09-07 01:21:56,735 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 9.88 sec   HDFS Read: 7212277 HDFS Write: 104 SUCCESS
+-- 2026-09-07 01:21:56,740 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 9.88 sec   HDFS Read: 7212277 HDFS Write: 104 SUCCESS
+-- Total MapReduce CPU Time Spent: 9 seconds 880 msec
+-- 2026-09-07 01:21:56,746 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 9 seconds 880 msec
+-- 2026-09-07 01:21:56,757 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907012112_32c9a870-a829-447e-9547-e7cd6f9f1ba0); Time taken: 43.308 seconds
+-- OK
+-- 2026-09-07 01:21:56,766 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:21:56,768 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:21:56,816 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-07 01:21:56,891 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_13:1,
+-- 8460
+-- Time taken: 43.977 seconds, Fetched: 1 row(s)
+-- 2026-09-07 01:21:56,918 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 43.977 seconds, Fetched: 1 row(s)
+-- 2026-09-07 01:21:56,923 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:21:56,929 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>     >     > 2026-09-07 01:21:56,936 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:21:56,938 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- 2026-09-07 01:21:56,944 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907012156_bc2aa590-1ad8-424c-abbd-5e5f7e99cc10): SELECT COUNT(*) FROM transactions_particionada WHERE month = 1
+-- 2026-09-07 01:21:56,971 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:21:56,972 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-07 01:21:56,977 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-07 01:21:56,978 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:21:56,980 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:56,981 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:56,986 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:21:56,987 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:21:57,005 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-56_970_1969586345921309654-1
+-- 2026-09-07 01:21:57,006 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-07 01:21:57,012 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,013 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_not_null_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,018 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,019 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,021 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,022 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_primary_keys : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,024 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,025 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_unique_constraints : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,027 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=transactions_particionada
+-- 2026-09-07 01:21:57,032 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=transactions_particionada
+-- 2026-09-07 01:21:57,134 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_partitions_by_expr : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,136 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_partitions_by_expr : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,436 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-07 01:21:57,436 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_databases: @hive#
+-- 2026-09-07 01:21:57,439 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:21:57,440 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-07 01:21:57,445 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-07 01:21:57,445 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,447 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:21:57,454 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-07 01:21:57,454 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-07 01:21:57,465 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-56_970_1969586345921309654-1
+-- 2026-09-07 01:21:57,468 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/d719a211-0ddf-4cf5-8385-3f04cb4710d2/hive_2026-09-07_01-21-56_970_1969586345921309654-1/-mr-10001/.hive-staging_hive_2026-09-07_01-21-56_970_1969586345921309654-1
+-- 2026-09-07 01:21:57,527 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-07 01:21:57,529 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(7)
+-- 2026-09-07 01:21:57,533 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(6)
+-- 2026-09-07 01:21:57,534 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(5)
+-- 2026-09-07 01:21:57,535 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(4)
+-- 2026-09-07 01:21:57,535 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(3)
+-- 2026-09-07 01:21:57,536 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(2)
+-- 2026-09-07 01:21:57,536 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(1)
+-- 2026-09-07 01:21:57,537 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-07 01:21:57,905 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 4 oldColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-07 01:21:57,906 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 4 newColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-07 01:21:57,950 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-07 01:21:57,954 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14777)) - Not eligible for results caching - no mr/tez/spark jobs
+-- 2026-09-07 01:21:57,960 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:21:57,961 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:_c0, type:bigint, comment:null)], properties:null)
+-- 2026-09-07 01:21:57,964 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[9]
+-- 2026-09-07 01:21:57,968 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907012156_bc2aa590-1ad8-424c-abbd-5e5f7e99cc10); Time taken: 1.024 seconds
+-- 2026-09-07 01:21:57,972 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:21:57,974 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:21:57,976 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907012156_bc2aa590-1ad8-424c-abbd-5e5f7e99cc10): SELECT COUNT(*) FROM transactions_particionada WHERE month = 1
+-- 2026-09-07 01:21:57,980 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907012156_bc2aa590-1ad8-424c-abbd-5e5f7e99cc10); Time taken: 0.004 seconds
+-- OK
+-- 2026-09-07 01:21:57,986 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:21:57,987 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 8460
+-- 2026-09-07 01:21:57,989 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_9:1,
+-- Time taken: 1.046 seconds, Fetched: 1 row(s)
+-- 2026-09-07 01:21:58,035 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 1.046 seconds, Fetched: 1 row(s)
+-- 2026-09-07 01:21:58,035 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:21:58,037 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
+
+#----------------------------------------------------------------------------------------------------
+### Passo 6 — MSCK REPAIR (quando as partições já existem como pasta, mas não estão registradas)
+
+```sql
+MSCK REPAIR TABLE transactions_particionada;
+```
+
+-- hive> MSCK REPAIR TABLE transactions_particionada;
+-- 2026-09-07 01:27:00,265 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:27:00,265 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to d719a211-0ddf-4cf5-8385-3f04cb4710d2 main
+-- 2026-09-07 01:27:00,269 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260907012700_a002cd5f-12c5-4873-bd70-ff8260141dd7): MSCK REPAIR TABLE transactions_particionada
+-- 2026-09-07 01:27:00,299 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:27:00,301 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,301 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,330 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-07 01:27:00,330 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:null, properties:null)
+-- 2026-09-07 01:27:00,335 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260907012700_a002cd5f-12c5-4873-bd70-ff8260141dd7); Time taken: 0.066 seconds
+-- 2026-09-07 01:27:00,337 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-07 01:27:00,341 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-07 01:27:00,342 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260907012700_a002cd5f-12c5-4873-bd70-ff8260141dd7): MSCK REPAIR TABLE transactions_particionada
+-- 2026-09-07 01:27:00,344 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:DDL] in serial mode
+-- 2026-09-07 01:27:00,358 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,359 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,366 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_partitions : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,369 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_partitions : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,629 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metadata.HiveMetaStoreChecker (HiveMetaStoreChecker.java:checkMetastore(122)) - Number of partitionsNotInMs=[], partitionsNotOnFs=[], tablesNotInMs=[], tablesNotOnFs=[]
+-- 2026-09-07 01:27:00,633 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,636 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa                 ip=unknown-ip-addr       cmd=get_table : tbl=hive.default.transactions_particionada
+-- 2026-09-07 01:27:00,673 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260907012700_a002cd5f-12c5-4873-bd70-ff8260141dd7); Time taken: 0.331 seconds
+-- OK
+-- 2026-09-07 01:27:00,676 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-07 01:27:00,679 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- Time taken: 0.412 seconds
+-- 2026-09-07 01:27:00,715 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 0.412 seconds
+-- 2026-09-07 01:27:00,716 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: d719a211-0ddf-4cf5-8385-3f04cb4710d2
+-- 2026-09-07 01:27:00,717 INFO  [d719a211-0ddf-4cf5-8385-3f04cb4710d2 main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive>
