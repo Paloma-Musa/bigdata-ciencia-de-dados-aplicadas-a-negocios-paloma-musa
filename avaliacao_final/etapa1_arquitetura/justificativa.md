@@ -13,31 +13,30 @@
 
 ## 1. Arquitetura de Big Data
 
-A arquitetura construida para o projeto da TechPay segue uma lógica simples que possiblita a execução facilitada. O primeiro passo é a identificação da origem das transações. A TechPay é uma fintech que processa transações via aplicativo(app), site(web), POS(pos) e caixas eletrônicos(atm). Essses dados sao armazendos em planilhas em formato CSV.
+A arquitetura construída para o projeto da TechPay segue uma lógica simples que possibilita a execução facilitada. O primeiro passo é a identificação da origem das transações. A TechPay é uma fintech que processa transações via aplicativo (app), site (web), POS (pos) e caixas eletrônicos (atm). Esses dados são armazenados em planilhas em formato CSV.
 
-Para o processo de coleta e a transferência dos dados brutos para um sistema centralizado de armazenamento (camada de ingestão), escolheu-se o PySpark como ferramenta principal de ingestão e processamento por permitir trabalhar tanto localmente quanto em um ambiente distribuído. Dessa forma, o mesmo código pode ser adaptado de uma execução local para um cluster Spark caso o volume de dados aumente.
+Para o processo de coleta e transferência dos dados brutos para um sistema centralizado de armazenamento (camada de ingestão), escolheu-se o Sqoop como ferramenta principal de ingestão, trazendo os dados de um banco relacional (MySQL) diretamente para o HDFS, distribuídos em múltiplos arquivos processados em paralelo pelos mappers. Após a ingestão, os dados brutos ficam armazenados na camada raw do HDFS, servindo de base para as camadas de processamento seguintes.
 
-Uma alternativa ao PySpark seria o Apache Kafka. Contudo, como o projeto é simples, baseado em um banco de dados estático e focado no processamento em batch, optou-se pelo PySpark para evitar a adição de complexidade desnecessária ao ambiente.
+Uma alternativa ao Sqoop seria o Apache Kafka. Contudo, como o projeto é baseado em uma carga de dados estática e focado em processamento em batch, optou-se pelo Sqoop para evitar a adição de complexidade desnecessária ao ambiente — o Kafka se justifica mais em cenários de ingestão contínua e em tempo real.
 
-Descrevendo as camadas de processamento, a primeira é a camada Bronze, onde os dados brutos são armazenados e convertidos do formato CSV para Parquet, um formato colunar eficiente para armazenamento, compressão e consultas analíticas. 
+Descrevendo as camadas de processamento, a primeira é a camada Bronze, onde os dados brutos são armazenados e convertidos do formato CSV para Parquet, um formato colunar eficiente para armazenamento, compressão e consultas analíticas, usando o Hive como motor de transformação.
 
-O particionamento dos dados foi realizado por data (atributo "timestamp"), mais detalhado por mês. Este particionamento mensal é adequado porque consultas de análise de risco frequentemente utilizam intervalos temporais. Um exmplo prático é a análise de fraudes ocorridas em mês: "A área de risco deseja analisar todas as fraudes ocorridas durante março de 2025.". Com month=mm, o mecanismo de busca executa o partition pruning, evitando a leitura desnecessária das demais partições. Vale ressaltar que a granularidade deve ser equilibrada: partições pequenas demais geram excesso de arquivos e overhead, enquanto partições grandes demais reduzem os benefícios do particionamento.
+O particionamento dos dados foi realizado por data (atributo "timestamp"), mais detalhado por mês. Este particionamento mensal é adequado porque consultas de análise de risco frequentemente utilizam intervalos temporais. Um exemplo prático é a análise de fraudes ocorridas em um mês: "A área de risco deseja analisar todas as fraudes ocorridas durante março de 2025." Com month=mm, o mecanismo de busca executa o partition pruning, evitando a leitura desnecessária das demais partições. Vale ressaltar que a granularidade deve ser equilibrada: partições pequenas demais geram excesso de arquivos e overhead, enquanto partições grandes demais reduzem os benefícios do particionamento.
 
-A segunda camada de processamento é a Silver, responsável pelo tratamento dos registros coletados para transformá-los em dados confiáveis. Nela, são executados processos como correção de tipos, tratamento de valores nulos e inválidos, remoção de duplicidades, padronização de categorias e criação de atributos derivados (como ano, mês, dia e hora).
+A segunda camada de processamento é a Silver, responsável pelo tratamento dos registros coletados para transformá-los em dados confiáveis. Nela, são executados processos como correção de tipos, tratamento de valores nulos e inválidos, remoção de duplicidades, padronização de categorias e criação de atributos derivados (como ano, mês, dia e hora), também via Hive.
 
-Por fim a camada de processamento Gold é responsável por transformar o dado em informação útil para a área de negócios, evitando que os dashboards precisem consultar milhões de registros individuais.
+Por fim, a camada de processamento Gold é responsável por transformar o dado em informação útil para a área de negócios, evitando que os dashboards precisem consultar milhões de registros individuais — essa camada concentra tabelas já agregadas.
 
-Para a camada de serving local, foi usado o DuckDB, que permite consultar as estruturas da camada Gold via SQL, enquanto o Plotly constrói o dashboard para a diretoria.
+Para a camada de serving, foi usado o Hive, permitindo consultar as estruturas da camada Gold via SQL diretamente sobre o HDFS, enquanto o Plotly constrói o dashboard para a diretoria a partir dos resultados dessas consultas.
 
 Alguns pontos da estrutura podem apresentar falhas caso haja mudanças significativas no conjunto de dados. A arquitetura apresentada foi desenhada considerando o conjunto de dados do trabalho, gerado com 30.000 registros conforme a instrução N = 30_000 no código generate_avaliacao_dataset.py. Os principais pontos de atenção são:
 
 | Ponto | Problema ao escalar | Mitigação |
 |----------|----------|----------|
 | CSV | Arquivo grande e leitura menos eficiente | Parquet + compressão + particionamento |
-| Memória do driver | collect() pode trazer muitos dados para a memória | Manter processamento distribuído no Spark |
+| Single-node HDFS | Sem replicação real, sem tolerância a falha de disco | Cluster com múltiplos DataNodes em produção |
 | Dashboard | Consultar milhões de registros diretamente é lento | Dashboard consulta agregações Gold |
-| Ingestão | Um único arquivo pode virar gargalo | Ingestão distribuída, como Kafka, em produção |
-
+| Ingestão | Um único job Sqoop pode virar gargalo | Ingestão distribuída/incremental, como Kafka, em produção |
 
 Além das alterações no volume de dados, é importante frisar que a estrutura atual atende ao objetivo de processamento em batch. Caso a empresa mude seu objetivo para **detecção de fraudes em tempo real**, a arquitetura precisará ser modificada e o diagrama não será exatamente o mesmo.
 
