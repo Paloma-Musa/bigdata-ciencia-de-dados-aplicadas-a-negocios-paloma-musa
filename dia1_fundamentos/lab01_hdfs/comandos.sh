@@ -1,13 +1,17 @@
 # Usando a rota A
 
+# ----------------------------------------------------------
 # Passo 1 - Confirmar HDFS de pé
+
 jps
 
+# palomamusa@DESKTOP-NJ8QT5E:~$ jps
 # 1154 Jps
 # 775 DataNode
 # 664 NameNode
 # 953 SecondaryNameNode
 
+# ----------------------------------------------------------
 # Passo 2 - Criar estrutura de camadas
 hadoop fs -mkdir -p /user/bigdata/raw/customers
 hadoop fs -mkdir -p /user/bigdata/raw/transactions
@@ -16,6 +20,7 @@ hadoop fs -mkdir -p /user/bigdata/bronze
 hadoop fs -mkdir -p /user/bigdata/silver
 hadoop fs -mkdir -p /user/bigdata/gold
 
+# ----------------------------------------------------------
 # Passo 3 - Conferir a estrutura
 hadoop fs -ls -R /user/bigdata
 
@@ -30,11 +35,13 @@ hadoop fs -ls -R /user/bigdata
 # -rw-r--r--   1 palomamusa supergroup    8139649 2026-08-22 11:45 /user/bigdata/raw/transactions/transactions_synthetic.csv
 # drwxr-xr-x   - palomamusa supergroup          0 2026-08-22 11:03 /user/bigdata/silver
 
+# ----------------------------------------------------------
 # Passo 4 - Subir os 3 datasets
 hadoop fs -put customers_synthetic.csv /user/bigdata/raw/customers/
 hadoop fs -put transactions_synthetic.csv /user/bigdata/raw/transactions/
 hadoop fs -put fraud_labels.csv /user/bigdata/raw/fraud_labels/
 
+# ----------------------------------------------------------
 # Passo 5 -  Verificar a replicação 3×
 hdfs fsck /user/bigdata/raw/transactions/transactions_synthetic.csv -files -blocks -locations
 
@@ -84,11 +91,14 @@ Connecting to namenode via http://localhost:9870/fsck?ugi=palomamusa&files=1&blo
 
 # The filesystem under path '/user/bigdata/raw/transactions/transactions_synthetic.csv' is HEALTHY
 
+# ----------------------------------------------------------
 # Passo 6 - Contar as linhas direto do HDFS
 hadoop fs -cat /user/bigdata/raw/customers/*.csv | wc -l
 
+# palomamusa@DESKTOP-NJ8QT5E:~$ hadoop fs -cat /user/bigdata/raw/customers/*.csv | wc -l
 #9995
 
 hadoop fs -cat /user/bigdata/raw/transactions/*.csv | wc -l
 
+# palomamusa@DESKTOP-NJ8QT5E:~$hadoop fs -cat /user/bigdata/raw/transactions/*.csv | wc -l
 #100002
