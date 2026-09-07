@@ -30,7 +30,7 @@ Por fim a camada de processamento GOLD, ela é responsável pela transformação
 
 Para a camada de serving local, foi usado o DuckDB, permite consultar as estruturas Gold com SQL. O Plotly constrói o dashboard para a diretoria.
 
-Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunto de dados. A estrutura apresentada foi construida para o banco de dados a ser ultilizado no trabalho, arquivo gerado com o tanho de 30.000 registros conforme "N = 30_000" resgisto no código "generate_avaliacao_dataset.py". Alguns pontos de falha podem ser:
+Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunto de dados. A estrutura apresentada foi construida para o banco de dados a ser ultilizado no trabalho, arquivo gerado com o tamanho de 30.000 transações conforme "N = 30_000" resgisto no código "generate_avaliacao_dataset.py". Alguns pontos de falha podem ser:
 
 | Ponto | Problema ao escalar | Mitigação |
 |----------|----------|----------|
