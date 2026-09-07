@@ -1,5 +1,4 @@
 # 📋 Relatório da Avaliação Final
-
 **Instituição:** UFC
 
 **Curso:** Introdução à Análise em Big Data
@@ -14,23 +13,23 @@
 
 ## 1. Arquitetura de Big Data
 
-A arquitetura construida para o projeto da Techpay segue lógica simples que possiblita a execução facilitada. O primeiro passo é a identificação da origem das transações da TechPay, a empresa é uma fintech que processa transações via aplicativo(app), site(web), POS(pos) e caixas eletrônicos(atm). Essses dados sao armazendos em planilhas em formato CSV.
+A arquitetura construida para o projeto da TechPay segue uma lógica simples que possiblita a execução facilitada. O primeiro passo é a identificação da origem das transações. A TechPay é uma fintech que processa transações via aplicativo(app), site(web), POS(pos) e caixas eletrônicos(atm). Essses dados sao armazendos em planilhas em formato CSV.
 
-Para o processo de coleta e a transferência dos dados brutos para um sistema centralizado de armazenamento, camada de ingestão, foi escolhido o PySpark como ferramenta principal de ingestão e processamento por permitir trabalhar tanto localmente quanto em um ambiente distribuído. Dessa forma, o mesmo código pode ser adaptado de uma execução local para um cluster Spark caso o volume de dados aumente.
+Para o processo de coleta e a transferência dos dados brutos para um sistema centralizado de armazenamento (camada de ingestão), escolheu-se o PySpark como ferramenta principal de ingestão e processamento por permitir trabalhar tanto localmente quanto em um ambiente distribuído. Dessa forma, o mesmo código pode ser adaptado de uma execução local para um cluster Spark caso o volume de dados aumente.
 
-Uma alternativa para o PySpark é o Apache Kafka, mas por o projeto ser algo simples com apenas uma banco de dados estático e que possui como objetivo da implementação o batch, além de evitar adição de complexidade desneccessária ao ambiente,foi preferido o PySpark.
+Uma alternativa ao PySpark seria o Apache Kafka. Contudo, como o projeto é simples, baseado em um banco de dados estático e focado no processamento em batch, optou-se pelo PySpark para evitar a adição de complexidade desnecessária ao ambiente.
 
-Foram descritas as camadas de processamento, a primeira camada é a camada Bronze onde os dados brutos são armazenados e possuem o formato de CSV é convertido para o foarto Parquet, formato colunar eficiente para armazenamento, compressão e consultas analíticas. 
+Descrevendo as camadas de processamento, a primeira é a camada Bronze, onde os dados brutos são armazenados e convertidos do formato CSV para Parquet, um formato colunar eficiente para armazenamento, compressão e consultas analíticas. 
 
-O particionamento dos dados foi realizado por data, mais detalhado por mês, atributo "timestamp", este particionamento por mês é adequado porque consultas de risco frequentemente usam intervalos temporais. Um exmplo prático é a analise de fraudes ocorridas em mês específico do ano observado. "A área de risco deseja analisar todas as fraudes ocorridas durante março de 2025.". Com month=mm, o mecanismo pode usar partition pruning e evitar a leitura das demais partições. A granularidade deve ser equilibrada, isso porque partições pequenas demais podem gerar muitos arquivos e overhead, já partições grandes demais reduzem o benefício.
+O particionamento dos dados foi realizado por data (atributo "timestamp"), mais detalhado por mês. Este particionamento mensal é adequado porque consultas de análise de risco frequentemente utilizam intervalos temporais. Um exmplo prático é a análise de fraudes ocorridas em mês: "A área de risco deseja analisar todas as fraudes ocorridas durante março de 2025.". Com month=mm, o mecanismo de busca executa o partition pruning, evitando a leitura desnecessária das demais partições. Vale ressaltar que a granularidade deve ser equilibrada: partições pequenas demais geram excesso de arquivos e overhead, enquanto partições grandes demais reduzem os benefícios do particionamento.
 
-A segunda camada de processamento é a SILVER ela é usada para tratamento dos registros coletados em dados confiáveis, por tanto são realizados uam séria de processos como correção de tipos, tratamento de nulos e valores inválidos, remoção de duplicidades, padronização de categorias e  criação de atributos derivados como ano, mês, dia e hora
+A segunda camada de processamento é a Silver, responsável pelo tratamento dos registros coletados para transformá-los em dados confiáveis. Nela, são executados processos como correção de tipos, tratamento de valores nulos e inválidos, remoção de duplicidades, padronização de categorias e criação de atributos derivados (como ano, mês, dia e hora).
 
-Por fim a camada de processamento GOLD, ela é responsável pela transformação do dado em informação útil para a área de negócios, evitando que o dashboard precise consultar milhões de registros individuais
+Por fim a camada de processamento Gold é responsável por transformar o dado em informação útil para a área de negócios, evitando que os dashboards precisem consultar milhões de registros individuais.
 
-Para a camada de serving local, foi usado o DuckDB, permite consultar as estruturas Gold com SQL. O Plotly constrói o dashboard para a diretoria.
+Para a camada de serving local, foi usado o DuckDB, que permite consultar as estruturas da camada Gold via SQL, enquanto o Plotly constrói o dashboard para a diretoria.
 
-Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunto de dados. A estrutura apresentada foi construida para o banco de dados a ser ultilizado no trabalho, arquivo gerado com o tamanho de 30.000 transações conforme "N = 30_000" resgisto no código "generate_avaliacao_dataset.py". Alguns pontos de falha podem ser:
+Alguns pontos da estrutura podem apresentar falhas caso haja mudanças significativas no conjunto de dados. A arquitetura apresentada foi desenhada considerando o conjunto de dados do trabalho, gerado com 30.000 registros conforme a instrução N = 30_000 no código generate_avaliacao_dataset.py. Os principais pontos de atenção são:
 
 | Ponto | Problema ao escalar | Mitigação |
 |----------|----------|----------|
@@ -40,42 +39,42 @@ Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunt
 | Ingestão | Um único arquivo pode virar gargalo | Ingestão distribuída, como Kafka, em produção |
 
 
- Além da mudanças no banco de dados poderem causar falhas na estrutura é importante frizar que a estrutura desenhada é para o objetivo de  implementação de batch, no caso em que a empresa mude o objetivo desejado, para **detecção de fraude em tempo real**, a estrutura deveráser modificada, por tanto o diagrama não seria integralmente o apresentado.
+Além das alterações no volume de dados, é importante frisar que a estrutura atual atende ao objetivo de processamento em batch. Caso a empresa mude seu objetivo para **detecção de fraudes em tempo real**, a arquitetura precisará ser modificada e o diagrama não será exatamente o mesmo.
 
-Para fraude em tempo real, a arquitetura batch seria complementada por um fluxo de streaming. Uma possibilidade é usar Kafka, sugerido como alternaiva anteriormente, para receber eventos e Spark Structured Streaming para processá-los continuamente.
+Para a detecção de fraudes em tempo real, a arquitetura em batch deve ser complementada por um fluxo de streaming. Uma solução viável é utilizar o Apache Kafka para o recebimento de eventos e o Spark Structured Streaming para o processamento contínuo:
 
 App / Web / POS / ATM
 
           |
-          
+
           v
-          
+
        [ Kafka ]
-       
+
           |
-          
+
           v
-          
+
 [ Spark Structured Streaming ]
 
           |
-          
+
           +----------------------+
-          
+
           |                      |  
-          
+
           v                      v 
-          
+
    Dados Silver/Gold        Motor de risco
-   
+
                                   |
-                                  
+
                              +----+----+
-                             
+
                              |         |
-                             
+
                              v         v
-                             
+
                           APROVAR   BLOQUEAR
 
-Nesse cenário, o risco pode ser calculado no momento da transação, permitindo aprovar ou bloquear operações rapidamente. O histórico continua sendo armazenado para auditoria, análises e treinamento de modelos.
+Nesse cenário, o risco pode ser calculado no momento da transação, permitindo aprovar ou bloquear operações rapidamente, enquanto o histórico permanece armazenado para auditorias, análises retrospectivas e treinamento de modelos.
