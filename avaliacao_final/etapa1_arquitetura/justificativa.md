@@ -1,8 +1,13 @@
 # 📋 Relatório da Avaliação Final
+
 **Instituição:** UFC
+
 **Curso:** Introdução à Análise em Big Data
+
 **Professor responsável:** Luiz Alexandre Moreira Barros
+
 **Aluno(a):** Paloma Musa Mendes Pereira
+
 **Link do repositório:** https://github.com/Paloma-Musa/bigdata-ciencia-de-dados-aplicadas-a-negocios-paloma-musa.git
 
 # Atividade Final
@@ -38,6 +43,7 @@ Alguns pontos da estrutura podem apresentar falha se houver mudanças no conjunt
  Além da mudanças no banco de dados poderem causar falhas na estrutura é importante frizar que a estrutura desenhada é para o objetivo de  implementação de batch, no caso em que a empresa mude o objetivo desejado, para **detecção de fraude em tempo real**, a estrutura deveráser modificada, por tanto o diagrama não seria integralmente o apresentado.
 
 Para fraude em tempo real, a arquitetura batch seria complementada por um fluxo de streaming. Uma possibilidade é usar Kafka, sugerido como alternaiva anteriormente, para receber eventos e Spark Structured Streaming para processá-los continuamente.
+
 App / Web / POS / ATM
           |
           v
