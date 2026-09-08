@@ -15,9 +15,9 @@
 
 A arquitetura construída para o projeto da TechPay segue uma lógica simples que possibilita a execução facilitada. O primeiro passo é a identificação da origem das transações. A TechPay é uma fintech que processa transações via aplicativo (app), site (web), POS (pos) e caixas eletrônicos (atm). Esses dados são armazenados em planilhas em formato CSV.
 
-Para o processo de coleta e transferência dos dados brutos para um sistema centralizado de armazenamento (camada de ingestão), escolheu-se o Sqoop como ferramenta principal de ingestão, trazendo os dados de um banco relacional (MySQL) diretamente para o HDFS, distribuídos em múltiplos arquivos processados em paralelo pelos mappers. Após a ingestão, os dados brutos ficam armazenados na camada raw do HDFS, servindo de base para as camadas de processamento seguintes.
+Para o processo de coleta e transferência dos dados brutos para um sistema centralizado de armazenamento (camada de ingestão), a origem dos dados é um arquivo CSV gerado a partir das transações da TechPay — não um banco de dados relacional. Por isso, a ingestão foi feita por cópia direta do arquivo para o HDFS, usando o comando hadoop fs -put, que move o CSV da máquina local para a camada raw do cluster. Após a ingestão, os dados brutos ficam armazenados na camada raw do HDFS, servindo de base para as camadas de processamento seguintes.
 
-Uma alternativa ao Sqoop seria o Apache Kafka. Contudo, como o projeto é baseado em uma carga de dados estática e focado em processamento em batch, optou-se pelo Sqoop para evitar a adição de complexidade desnecessária ao ambiente — o Kafka se justifica mais em cenários de ingestão contínua e em tempo real.
+Uma alternativa mais robusta ao hadoop fs -put seria o uso de uma ferramenta de ingestão dedicada, como o Apache NiFi ou o Flume, que ofereceria esteira automatizada, monitoramento e reprocessamento em caso de falha. Contudo, como o projeto trabalha com uma carga única e estática de um arquivo CSV, essa complexidade adicional não se justifica — o hadoop fs -put é suficiente para o volume e a frequência de ingestão deste cenário, evitando overhead desnecessário no ambiente.
 
 Descrevendo as camadas de processamento, a primeira é a camada Bronze, onde os dados brutos são armazenados e convertidos do formato CSV para Parquet, um formato colunar eficiente para armazenamento, compressão e consultas analíticas, usando o Hive como motor de transformação.
 
@@ -34,6 +34,7 @@ Alguns pontos da estrutura podem apresentar falhas caso haja mudanças significa
 | Ponto | Problema ao escalar | Mitigação |
 |----------|----------|----------|
 | CSV | Arquivo grande e leitura menos eficiente | Parquet + compressão + particionamento |
+|Ingestão	| Uma cópia manual via HDFS CLI não escala nem se recupera de falhas sozinha | Ingestão automatizada e distribuída/incremental, como Kafka ou NiFi, em produção|
 | Single-node HDFS | Sem replicação real, sem tolerância a falha de disco | Cluster com múltiplos DataNodes em produção |
 | Dashboard | Consultar milhões de registros diretamente é lento | Dashboard consulta agregações Gold |
 | Ingestão | Um único job Sqoop pode virar gargalo | Ingestão distribuída/incremental, como Kafka, em produção |
