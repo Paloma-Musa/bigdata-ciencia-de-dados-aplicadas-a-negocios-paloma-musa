@@ -34,10 +34,9 @@ Alguns pontos da estrutura podem apresentar falhas caso haja mudanças significa
 | Ponto | Problema ao escalar | Mitigação |
 |----------|----------|----------|
 | CSV | Arquivo grande e leitura menos eficiente | Parquet + compressão + particionamento |
-|Ingestão	| Uma cópia manual via HDFS CLI não escala nem se recupera de falhas sozinha | Ingestão automatizada e distribuída/incremental, como Kafka ou NiFi, em produção|
 | Single-node HDFS | Sem replicação real, sem tolerância a falha de disco | Cluster com múltiplos DataNodes em produção |
 | Dashboard | Consultar milhões de registros diretamente é lento | Dashboard consulta agregações Gold |
-| Ingestão | Um único job Sqoop pode virar gargalo | Ingestão distribuída/incremental, como Kafka, em produção |
+|Ingestão	| Uma cópia manual via HDFS CLI não escala nem se recupera de falhas sozinha | Ingestão automatizada e distribuída/incremental, como Kafka ou NiFi, em produção|
 
 Além das alterações no volume de dados, é importante frisar que a estrutura atual atende ao objetivo de processamento em batch. Caso a empresa mude seu objetivo para **detecção de fraudes em tempo real**, a arquitetura precisará ser modificada e o diagrama não será exatamente o mesmo.
 
