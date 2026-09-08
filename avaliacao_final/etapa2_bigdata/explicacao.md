@@ -1,22 +1,35 @@
-# Etapa 2 — Big Data: Execução do Pipeline (TECHPAY)
+# 📋 Relatório da Avaliação Final
+**Instituição:** UFC
 
-## 1. Ingestão
+**Curso:** Introdução à Análise em Big Data
+
+**Professor responsável:** Luiz Alexandre Moreira Barros
+
+**Aluno(a):** Paloma Musa Mendes Pereira
+
+**Link do repositório:** https://github.com/Paloma-Musa/bigdata-ciencia-de-dados-aplicadas-a-negocios-paloma-musa.git
+
+# Atividade Final
+
+## 2. Pipeline
+
+## 2.1. Ingestão
 
 A base `avaliacao_transactions.csv` foi gerada com o script `generate_avaliacao_dataset.py`, produzindo 30.000 transações com taxa de fraude geral de 2,50%, variando por canal (maior em `app`, 3,79%), por categoria de comerciante (maior em `viagem`, 5,32%) e por segmento de cliente (maior em `High-Risk`, 9,67%).
 
 O arquivo foi movido para o HDFS através dos comandos `hadoop fs -mkdir -p` (criação da estrutura `/user/avaliacao/{raw,bronze,silver,gold}`) e `hadoop fs -put` (upload do CSV para `/user/avaliacao/raw/`). A escolha de manter a estrutura de pastas separada por camada segue a arquitetura definida na Etapa 1 (APP/WEB/POS/ATM → Sqoop → Raw → Bronze → Silver, com Hive orquestrando a transição Bronze→Silver).
 
-## 2. Criação da tabela Raw
+## 2.2. Criação da tabela Raw
 
 A tabela `raw_transactions` foi criada como **tabela externa** no Hive, com todas as colunas tipadas como `STRING`. Essa escolha é proposital: a camada Raw deve preservar o dado exatamente como chegou, sem qualquer conversão de tipo, permitindo reprocessar a partir da fonte original caso algum problema de tipagem seja identificado depois. O parâmetro `skip.header.line.count=1` remove o cabeçalho do CSV automaticamente, e a contagem confirmou 30.000 linhas — igual ao total gerado, validando que a ingestão não perdeu nem duplicou registros nessa etapa.
 
 Um ponto técnico relevante: a coluna `timestamp` do CSV foi renomeada para `txn_timestamp` na definição da tabela, já que `timestamp` é palavra reservada no Hive. Como a tabela usa formato delimitado por posição (`ROW FORMAT DELIMITED FIELDS TERMINATED BY ','`), a renomeação não afeta a leitura dos dados — o que importa é a ordem das colunas, não o nome.
 
-## 3. Particionamento
+## 2.3. Particionamento
 
 A estratégia de particionamento definida na Etapa 1 — partição mensal — foi aplicada a partir da camada Bronze em diante, usando uma coluna derivada `txn_month` no formato `yyyy-MM`, extraída de `txn_timestamp` com `date_format()`. A Raw não é particionada porque ainda não passou por conversão de tipos (o `timestamp` ainda é `STRING`), então o particionamento por mês só é aplicado a partir do momento em que o dado já está tipado corretamente, na Bronze.
 
-## 4. Camada Bronze — limpeza
+## 2.4. Camada Bronze — limpeza
 
 A camada Bronze aplicou três frentes de tratamento sobre a Raw:
 
@@ -28,7 +41,7 @@ O resultado: a Bronze ficou com **27.940 linhas**, uma redução de 2.060 regist
 
 Os dados foram gravados em formato **Parquet**, particionados por `txn_month`, conforme a arquitetura definida.
 
-## 5. Camada Silver — enriquecimento e padronização
+## 2.5. Camada Silver — enriquecimento e padronização
 
 A Silver partiu da Bronze (sem novos filtros — o número de linhas se manteve em 27.940, confirmando que essa camada não descarta dados, apenas os transforma) e aplicou:
 
@@ -39,7 +52,7 @@ A Silver partiu da Bronze (sem novos filtros — o número de linhas se manteve 
 
 Essas duas colunas foram escolhidas porque agregam valor analítico direto às tabelas Gold seguintes — faixa de valor e período do dia são dimensões comuns em análises de comportamento transacional e de risco de fraude.
 
-## 6. Camada Gold — agregações
+## 2.6. Camada Gold — agregações
 
 Foram construídas três tabelas Gold, todas a partir da Silver, pensando no que a Etapa 3 provavelmente vai precisar (análise ou modelagem de fraude):
 
@@ -47,7 +60,7 @@ Foram construídas três tabelas Gold, todas a partir da Silver, pensando no que
 2. **`gold_segment_category_summary`** (18 linhas — 3 segmentos × 6 categorias): volume e valor total transacionado, ticket médio e taxa de fraude, agrupados por segmento de cliente e categoria de comerciante. Permite cruzar o perfil de risco do cliente com o tipo de compra.
 3. **`gold_risk_profile_by_period`** (12 linhas — 4 períodos do dia × 3 faixas de score de crédito): taxa de fraude e score de risco médio, agrupados por período do dia e faixa de score de crédito. Essa tabela usa diretamente as colunas derivadas criadas na Silver (`day_period`) e uma nova faixa (`credit_score_range`), evidenciando o valor do enriquecimento feito na etapa anterior.
 
-## 7. Resumo dos volumes por camada
+## 2.7. Resumo dos volumes por camada
 
 | Camada | Linhas | Observação |
 |---|---|---|
@@ -58,6 +71,6 @@ Foram construídas três tabelas Gold, todas a partir da Silver, pensando no que
 | Gold (segmento/categoria) | 18 | Agregação |
 | Gold (período/score) | 12 | Agregação |
 
-## 8. Dificuldades encontradas
+## 2.8. Dificuldades encontradas
 
 Durante a execução, o script foi colado diretamente no shell interativo do Hive (`hive>`) em vez de ser executado como arquivo (`hive -f`). Isso causou corrupção do texto colado — comandos de terminal se misturaram com o SQL, fazendo com que a criação da tabela Bronze falhasse silenciosamente, o que por sua vez deixou a Silver vazia (a tabela era criada, mas o `INSERT` que a povoa dependia da Bronze inexistente). O problema foi resolvido reescrevendo o script inteiro em um único bloco via `cat > arquivo.sql << 'EOF'` e executando-o de forma não interativa com `hive -f`, eliminando o risco de perda de texto no paste. A lição prática: pipelines Hive/SQL extensos devem sempre ser executados a partir de arquivo, nunca colados diretamente no prompt interativo.
