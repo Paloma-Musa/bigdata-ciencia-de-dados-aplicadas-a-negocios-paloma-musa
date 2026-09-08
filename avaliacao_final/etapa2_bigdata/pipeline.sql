@@ -201,7 +201,7 @@ WHERE rn = 1                              -- remove duplicatas por transaction_i
   AND txn_timestamp IS NOT NULL
   AND amount IS NOT NULL AND amount >= 0         
   AND risk_score BETWEEN 0 AND 100                 
-  AND credit_score BETWEEN 300 AND 850;             
+  AND credit_score BETWEEN 300 AND 900;             
 
 -- ================================================================================
 -- Camada Silver - padronização + enriquecimento (dados derivados)
