@@ -13,21 +13,15 @@
 
 ## 2. Pipeline
 
-## 2.1. Ingestão
+Antecedendo a etapa de Ingestão do projeto foi gerada a base avaliacao_transactions.csv com o script generate_avaliacao_dataset.py, produzindo 30.000 transações com taxa de fraude geral de 2,50%, variando por canal (maior em app, 3,79%), por categoria de comerciante (maior em viagem, 5,32%) e por segmento de cliente (maior em High-Risk, 9,67%).
 
-A base `avaliacao_transactions.csv` foi gerada com o script `generate_avaliacao_dataset.py`, produzindo 30.000 transações com taxa de fraude geral de 2,50%, variando por canal (maior em `app`, 3,79%), por categoria de comerciante (maior em `viagem`, 5,32%) e por segmento de cliente (maior em `High-Risk`, 9,67%).
+O arquivo foi movido para o HDFS, respeitando a estrutura de pastas separada por camada que segue a arquitetura definida na etapa 1 (APP/WEB/POS/ATM → HDFS CLI → Raw → Bronze → Silver, com Hive orquestrando a transição Bronze→Silver).
 
-O arquivo foi movido para o HDFS através dos comandos `hadoop fs -mkdir -p` (criação da estrutura `/user/avaliacao/{raw,bronze,silver,gold}`) e `hadoop fs -put` (upload do CSV para `/user/avaliacao/raw/`). A escolha de manter a estrutura de pastas separada por camada segue a arquitetura definida na Etapa 1 (APP/WEB/POS/ATM → Sqoop → Raw → Bronze → Silver, com Hive orquestrando a transição Bronze→Silver).
+A tabela raw_transactions foi criada como tabela externa no Hive, com todas as colunas tipadas como STRING. A não tipagem na camada Raw é proposital, pois a preservação do dado exatamente como chegou, sem qualquer conversão de tipo, permite recuperar o dado a partir da fonte original caso algum problema de tipagem seja identificado depois na camada Bronze.
 
-## 2.2. Criação da tabela Raw
+É importante pontuar que a coluna “timestamp” do CSV foi renomeada para “txn_timestamp” na definição da tabela, já que timestamp é palavra reservada no Hive. Como a tabela usa formato delimitado por posição, a renomeação não afeta a leitura dos dados, o que realmente importa é a ordem das colunas, não o nome.
 
-A tabela `raw_transactions` foi criada como **tabela externa** no Hive, com todas as colunas tipadas como `STRING`. Essa escolha é proposital: a camada Raw deve preservar o dado exatamente como chegou, sem qualquer conversão de tipo, permitindo reprocessar a partir da fonte original caso algum problema de tipagem seja identificado depois. O parâmetro `skip.header.line.count=1` remove o cabeçalho do CSV automaticamente, e a contagem confirmou 30.000 linhas — igual ao total gerado, validando que a ingestão não perdeu nem duplicou registros nessa etapa.
-
-Um ponto técnico relevante: a coluna `timestamp` do CSV foi renomeada para `txn_timestamp` na definição da tabela, já que `timestamp` é palavra reservada no Hive. Como a tabela usa formato delimitado por posição (`ROW FORMAT DELIMITED FIELDS TERMINATED BY ','`), a renomeação não afeta a leitura dos dados — o que importa é a ordem das colunas, não o nome.
-
-## 2.3. Particionamento
-
-A estratégia de particionamento definida na Etapa 1 — partição mensal — foi aplicada a partir da camada Bronze em diante, usando uma coluna derivada `txn_month` no formato `yyyy-MM`, extraída de `txn_timestamp` com `date_format()`. A Raw não é particionada porque ainda não passou por conversão de tipos (o `timestamp` ainda é `STRING`), então o particionamento por mês só é aplicado a partir do momento em que o dado já está tipado corretamente, na Bronze.
+Na etapa do particionamento foi aplicada a estratégia de particionamento mensal definida na etapa do diagrama, para isso foi criada uma coluna derivada “txn_month” no formato yyyy-MM, extraída de txn_timestamp, para ser usada como chave de partição a partir da camada Bronze. Isso porque a Raw passou por conversão de tipos, então o particionamento por mês só é aplicado a partir do momento em que o dado já está tipado corretamente, o que só acontece na camada Bronze.
 
 ## 2.4. Camada Bronze — limpeza
 
@@ -83,17 +77,6 @@ Durante a execução, o script foi colado diretamente no shell interativo do Hiv
 
 
 
-## 1. Ingestão
-
-Essa etapa trouxe o arquivo `avaliacao_transactions.csv` (30.000 transações, geradas com taxa de fraude de 2,50%) do disco local para o HDFS, dentro da estrutura de pastas `/user/avaliacao/{raw,bronze,silver,gold}`. A decisão foi manter uma pasta por camada, separando fisicamente Raw de Bronze/Silver/Gold, o que facilita reprocessamento independente de cada etapa sem misturar dados de estágios diferentes. O problema real encontrado aqui foi de operação, não de dado: ao rodar os comandos Hive logo depois da ingestão, colei o script inteiro direto no prompt interativo (`hive>`), e o terminal misturou texto digitado com a saída de log em tempo real, corrompendo trechos do script. A solução foi recriar o arquivo `.sql` de forma limpa (usando um heredoc `cat > arquivo.sql << 'EOF'`) e executá-lo como arquivo (`hive -f`), nunca colando comando por comando dentro do prompt interativo.
-
-## 2. Criação da tabela Raw
-
-Essa etapa criou a tabela `raw_transactions` como tabela externa no Hive, apontando para o CSV já carregado no HDFS, com **todas as colunas tipadas como STRING**. A decisão de não tipar nada ainda na Raw foi proposital: essa camada deve preservar o dado exatamente como chegou da fonte, sem qualquer interpretação ou conversão — se depois eu perceber que interpretei um tipo errado na Bronze, ainda tenho a fonte intacta para reprocessar. O problema real aqui foi que a coluna `timestamp` do CSV é uma palavra reservada no Hive, e usá-la como nome de coluna quebra o `CREATE TABLE`; resolvi renomeando a coluna para `txn_timestamp` na definição da tabela — o que não afeta a leitura, já que a tabela é delimitada por posição (a ordem das colunas no `CREATE TABLE` precisa bater com a ordem do CSV, não o nome).
-
-## 3. Particionamento
-
-Essa etapa aplicou a estratégia de particionamento mensal definida na Etapa 1, criando a coluna derivada `txn_month` (formato `yyyy-MM`, extraída de `txn_timestamp`) e usando-a como chave de partição a partir da camada Bronze. A decisão foi não particionar a Raw: como lá o timestamp ainda é STRING (sem conversão), não faz sentido derivar uma partição de um campo ainda não confiável — o particionamento só entra depois que o dado já está tipado corretamente. O problema real foi habilitar partição dinâmica no Hive (por padrão ele exige que ao menos uma coluna de partição seja informada estaticamente); resolvi configurando `hive.exec.dynamic.partition.mode=nonstrict` antes dos `INSERT`, permitindo que o Hive decida sozinho, a partir do valor de `txn_month` de cada linha, em qual partição ela cai.
 
 ## 4. Camada Bronze — limpeza
 
