@@ -15,6 +15,11 @@
 
 As análises realizadas foram, Risco por canal (`channel`), Risco por categoria de estabelecimento (`merchant_category`) e Padrão temporal (dia, hora, ou dia da semana).
 
+Finding (o número, direto): "O canal app apresenta taxa de fraude de 3,72%, mais que o dobro dos demais canais (web 1,75%, atm 1,74%, pos 1,35%)."
+
+Insight (por que isso importa, o contexto de negócio por trás do número): "Isso é esperado, dado que transações via app não passam por nenhuma verificação presencial ou física, ao contrário do pos — o que reduz as barreiras naturais contra fraude nesse canal."
+
+Ação (o que a área de risco faz com essa informação): "Recomenda-se priorizar regras de detecção adicionais (ex.: biometria, autenticação em duas etapas) especificamente para transações via app, já que é o canal que concentra o maior risco proporcional."
 
 Risco por canal (`channel`)
 
