@@ -23,80 +23,55 @@ A tabela raw_transactions foi criada como tabela externa no Hive, com todas as c
 
 Na etapa do particionamento foi aplicada a estratégia de particionamento mensal definida na etapa do diagrama, para isso foi criada uma coluna derivada “txn_month” no formato yyyy-MM, extraída de txn_timestamp, para ser usada como chave de partição a partir da camada Bronze. Isso porque a Raw passou por conversão de tipos, então o particionamento por mês só é aplicado a partir do momento em que o dado já está tipado corretamente, o que só acontece na camada Bronze.
 
-## 2.4. Camada Bronze — limpeza
+A Camada Bronze é responsável pelo primeiro tratamento dos dados provenientes da camada Raw. Os dados brutos foram tipados, deduplicados e submetidos a regras básicas de validação, preparando-os assim para o processamento e enriquecimento nas camadas seguintes.
 
-A camada Bronze aplicou três frentes de tratamento sobre a Raw:
+O primeiro tratamento realizado foi a tipagem, conversão dos tipos de dados, onde os valores originalmente armazenados como `STRING` foram convertidos para os tipos adequados, como inteiro, decimal, data e boolean. Em seguida, foi realizada a deduplicação das transações, uma remoção de possíveis registros duplicados, foi mantido apenas a primeira ocorrência de cada transação, considerando a ocorrência mais antiga como a transação original e as demais como possíveis duplicações decorrentes do processo de ingestão.
 
-1. **Tipagem**: conversão explícita de `STRING` para os tipos corretos (`INT`, `DECIMAL(12,2)`, `TIMESTAMP`, `BOOLEAN`), permitindo operações numéricas e temporais nas camadas seguintes.
-2. **Deduplicação**: uso de `ROW_NUMBER() OVER (PARTITION BY transaction_id ORDER BY txn_timestamp)`, mantendo apenas a primeira ocorrência de cada `transaction_id`. Isso trata o caso de o mesmo ID de transação aparecer mais de uma vez na fonte.
-3. **Remoção de valores impossíveis**: descarte de registros com `amount` negativo, `risk_score` fora do intervalo 0–100, `credit_score` fora do intervalo 300–850 (faixa padrão de score de crédito), ou com campos-chave nulos (`transaction_id`, `customer_id`, `txn_timestamp`).
+Também foram aplicadas regras para a remoção de valores impossíveis ou inválidos. Foram descartados registros que apresentassem `amount` negativo, `risk_score` fora do intervalo de 0 a 100, `credit_score` fora do intervalo de 300 a 900, além de registros com campos essenciais nulos, como `transaction_id`, `customer_id` e `txn_timestamp`.
 
-O resultado: a Bronze ficou com **27.940 linhas**, uma redução de 2.060 registros (aproximadamente 6,9% da base) em relação à Raw. Essa proporção é compatível com um dataset sintético que introduz sujeira proposital para fins de avaliação, e confirma que os filtros de limpeza estão de fato atuando sobre os dados — não apenas copiando a Raw sem alteração.
+Como resultado desses tratamentos, a base passou de 30.000 registros na Raw para 27.940 registros na Bronze. Portanto, 2.060 registros foram descartados, aproximadamente 6,9% da base original. Esses registros foram removidos por não atenderem às regras de qualidade definidas para a camada Bronze, seja por duplicidade, valores inválidos ou ausência de informações essenciais.
 
-Os dados foram gravados em formato **Parquet**, particionados por `txn_month`, conforme a arquitetura definida.
+Após a limpeza, os dados foram armazenados em formato Parquet, organizados em partições pelo campo mês (“txn_month”). Essa estratégia facilitou o armazenamento e o processamento dos dados, permitindo que consultas que utilizem um determinado período possam acessar apenas as partições correspondentes.
 
-## 2.5. Camada Silver — enriquecimento e padronização
+A partir desse processo, a Bronze passa a representar uma versão mais confiável e estruturada dos dados originalmente recebidos na Raw. Na etapa seguinte, a **Camada Silver** utiliza os 27.940 registros restantes para realizar processos de padronização e enriquecimento, sem realizar novos descartes de registros.
 
-A Silver partiu da Bronze (sem novos filtros — o número de linhas se manteve em 27.940, confirmando que essa camada não descarta dados, apenas os transforma) e aplicou:
+A Camada Silver parte dos dados já tratados na Bronze sem realizar novos descartes, nessa camada foi realizada a padronização e enriquecimento das informações, preparando a base para as análises realizadas na Camada Gold.
 
-- **Padronização de texto**: `LOWER(TRIM(...))` em `transaction_type`, `channel`, `merchant_category` e `status`, evitando inconsistências como `"App"` vs `"app"`. O campo `segment` recebeu uma padronização adicional via `CASE`/`LIKE`, normalizando variações de grafia para os três rótulos oficiais (`High-Risk`, `Premium`, `Standard`).
-- **Duas colunas derivadas**, conforme pedido no enunciado:
-  - `amount_range`: classifica o valor da transação em `baixo` (<50), `medio` (<500), `alto` (<2000) ou `muito_alto` (≥2000).
-  - `day_period`: classifica o horário da transação em `manha`, `tarde`, `noite` ou `madrugada`, a partir da função `HOUR(txn_timestamp)`.
+O primeiro tratamento realizado foi a padronização dos campos de texto, onde foram aplicadas funções (`LOWER()` e `TRIM()`) nas colunas “transaction_type”, “channel”, “merchant_category” e “status”, para eliminar diferenças causadas por espaços desnecessários e variações de letras maiúsculas e minúsculas. Dessa forma, valores como as variações`"App"`, `"APP"` e `" app "` passam a ser escritos de uma maneira uniforme.
 
-Essas duas colunas foram escolhidas porque agregam valor analítico direto às tabelas Gold seguintes — faixa de valor e período do dia são dimensões comuns em análises de comportamento transacional e de risco de fraude.
+O campo `segment` recebeu um tratamento adicional. Como o dataset apresentava diferentes grafias ou variações de caixa para um mesmo grupo, foi utilizado um `CASE` combinado com `LIKE` para normalizar os valores e garantir que todos fossem representados por apenas três rótulos oficiais do domínio: **High-Risk, Premium e Standard**. Essa padronização evita que o mesmo segmento seja contabilizado como categorias diferentes durante as agregações realizadas posteriormente.
 
-## 2.6. Camada Gold — agregações
+Além da padronização dos dados existentes, foram criadas duas novas colunas derivadas, como sugerido na orientação sobre o enriquecimento dos dados, “faixa de valor” (amount_range) e “período do dia” (day_period). 
 
-Foram construídas três tabelas Gold, todas a partir da Silver, pensando no que a Etapa 3 provavelmente vai precisar (análise ou modelagem de fraude):
+A variável “faixa de valor” classifica o valor da transação em quatro faixas: `baixo` para valores menores que 50, `medio` para valores menores que 500, `alto` para valores menores que 2.000 e `muito_alto` para valores iguais ou superiores a 2.000. 
 
-1. **`gold_fraud_by_channel_month`** (48 linhas — combinações de mês × canal): total de transações, contagem e taxa de fraude, ticket médio e score de risco médio, agrupados por mês e canal. Permite identificar se a fraude está concentrada em algum canal específico ou variando ao longo do tempo.
-2. **`gold_segment_category_summary`** (18 linhas — 3 segmentos × 6 categorias): volume e valor total transacionado, ticket médio e taxa de fraude, agrupados por segmento de cliente e categoria de comerciante. Permite cruzar o perfil de risco do cliente com o tipo de compra.
-3. **`gold_risk_profile_by_period`** (12 linhas — 4 períodos do dia × 3 faixas de score de crédito): taxa de fraude e score de risco médio, agrupados por período do dia e faixa de score de crédito. Essa tabela usa diretamente as colunas derivadas criadas na Silver (`day_period`) e uma nova faixa (`credit_score_range`), evidenciando o valor do enriquecimento feito na etapa anterior.
+Já a variável “período do dia” classifica a transação de acordo com o horário em que ocorreu, utilizando a função `HOUR(txn_timestamp)`. Os registros são agrupados nos períodos `manha`, `tarde`, `noite` e `madrugada`.
 
-## 2.7. Resumo dos volumes por camada
+A escolha dessas duas colunas derivadas foi feita considerando seu valor analítico para as etapas seguintes, especialmente para as análises relacionadas ao comportamento transacional e à detecção de possíveis fraudes. O horário da transação e o valor movimentado são dimensões que podem ajudar a identificar comportamentos fora do padrão. Por exemplo, uma transação de valor muito elevado ou realizada em um horário incomum pode apresentar características relevantes para uma análise de risco.
 
-| Camada | Linhas | Observação |
-|---|---|---|
-| Raw | 30.000 | Igual ao total gerado — nenhuma perda na ingestão |
-| Bronze | 27.940 | -2.060 linhas (duplicatas + valores impossíveis) |
-| Silver | 27.940 | Igual à Bronze — só enriquecimento, sem filtro |
-| Gold (channel/mês) | 48 | Agregação |
-| Gold (segmento/categoria) | 18 | Agregação |
-| Gold (período/score) | 12 | Agregação |
+As colunas **`channel`** e **`merchant_category`** também foram mantidas na Silver, sendo apenas padronizadas. Essas variáveis possuem relevância direta para a análise de fraude realizada nas etapas anteriores. Foi identificado que a taxa de fraude varia significativamente entre os canais e também entre as categorias de comerciantes, com destaque para a categoria de `viagem`.
 
-## 2.8. Dificuldades encontradas
+Portanto, remover “channel” ou “merchant_category” nessa etapa faria com que essas variáveis deixassem de estar disponíveis para as agregações da Camada Gold. Mantê-las na Silver permite posteriormente gerar métricas de fraude por canal, categoria de comerciante, faixa de valor e período do dia, possibilitando uma análise mais detalhada do comportamento das transações.
 
-Durante a execução, o script foi colado diretamente no shell interativo do Hive (`hive>`) em vez de ser executado como arquivo (`hive -f`). Isso causou corrupção do texto colado — comandos de terminal se misturaram com o SQL, fazendo com que a criação da tabela Bronze falhasse silenciosamente, o que por sua vez deixou a Silver vazia (a tabela era criada, mas o `INSERT` que a povoa dependia da Bronze inexistente). O problema foi resolvido reescrevendo o script inteiro em um único bloco via `cat > arquivo.sql << 'EOF'` e executando-o de forma não interativa com `hive -f`, eliminando o risco de perda de texto no paste. A lição prática: pipelines Hive/SQL extensos devem sempre ser executados a partir de arquivo, nunca colados diretamente no prompt interativo.
+Como resultado, a Silver manteve os 27.940 registros provenientes da Bronze, sem novos filtros ou descartes. A principal transformação dessa camada foi a padronização dos dados existentes e a criação de novas dimensões analíticas, deixando a base estruturada para a construção das tabelas e indicadores da Camada Gold.
 
+A Camada Gold é responsável por transformar os dados já padronizados e enriquecidos da Silver em **tabelas agregadas e orientadas à análise**. Foram construídas três tabelas Gold, todas derivadas da Silver, com foco nas necessidades da Etapa 3, especialmente nas análises e na possível modelagem para detecção de fraude.
 
+A primeira tabela, **`gold_fraud_by_channel_month`**, possui **48 linhas**, correspondentes às combinações entre mês e canal. Ela apresenta o total de transações, a quantidade e a taxa de fraude, o ticket médio e o score de risco médio, agrupados por mês e canal. Essa agregação permite analisar **onde e quando a fraude está mais concentrada**, possibilitando identificar padrões temporais e diferenças de comportamento entre os canais de transação.
 
+A segunda tabela, **`gold_segment_category_summary`**, possui **18 linhas**, resultantes da combinação de três segmentos de clientes com seis categorias de comerciantes. Ela reúne informações como volume de transações, valor total transacionado, ticket médio e taxa de fraude, agrupadas por segmento de cliente e categoria de comerciante. Essa visão permite analisar **quais combinações entre perfil de cliente e tipo de compra apresentam maior risco**, relacionando características do consumidor ao contexto da transação.
 
+A terceira tabela, **`gold_risk_profile_by_period`**, possui **12 linhas**, correspondentes às combinações entre os quatro períodos do dia e três faixas de score de crédito. Ela apresenta a taxa de fraude e o score de risco médio para cada combinação. Essa tabela utiliza diretamente a coluna derivada `day_period`, criada na Silver, e também uma nova classificação denominada `credit_score_range`. Dessa forma, é possível analisar **como o horário da transação e o perfil de crédito se relacionam com a ocorrência de fraude**.
 
+A escolha dessas três agregações foi feita para contemplar diferentes dimensões relevantes para a análise de risco: **tempo e canal de operação, perfil do cliente e comportamento relacionado ao crédito**. Em conjunto, elas permitem responder a perguntas diferentes sobre o comportamento das transações: em quais canais e períodos a fraude se concentra, quais perfis de clientes e categorias de comerciantes apresentam maior risco e quais combinações entre horário e score de crédito estão mais associadas à fraude.
 
+Além de servirem para análises exploratórias e geração de indicadores, essas tabelas podem fornecer **variáveis agregadas potencialmente úteis como features para uma etapa posterior de modelagem de fraude**. A intenção, portanto, não foi apenas produzir números consolidados, mas organizar informações que possam contribuir para a identificação de padrões de comportamento e risco.
 
+Durante a construção das tabelas Gold, também foi identificado um problema importante no processo. Em uma primeira tentativa, a Camada Silver estava vazia devido ao problema de paste corrompido ocorrido em uma etapa anterior. Como as tabelas Gold foram criadas utilizando `CREATE TABLE ... AS SELECT`, os comandos foram executados sem apresentar erro, porém as tabelas resultaram em **0 linhas**, pois a consulta de origem não possuía registros.
 
+O problema só foi identificado após a realização de uma validação manual utilizando `COUNT(*)`. Esse caso demonstrou a importância de **validar o volume de dados entre as diferentes camadas da arquitetura**, pois a execução bem-sucedida de um comando não garante, por si só, que os dados tenham sido processados corretamente.
 
+Após a correção da Silver e a nova execução das consultas, as três tabelas Gold passaram a apresentar os volumes esperados: **48 linhas em `gold_fraud_by_channel_month`, 18 linhas em `gold_segment_category_summary` e 12 linhas em `gold_risk_profile_by_period`**.
 
-## 4. Camada Bronze — limpeza
+Assim, a arquitetura final estabelece um fluxo em que a Raw fornece os dados brutos, a Bronze realiza a limpeza e validação inicial, a Silver padroniza e enriquece os dados e a Gold os transforma em **informações agregadas e orientadas à análise**, deixando a estrutura preparada para a etapa de análise e modelagem de fraude.
 
-Essa etapa converteu os tipos (`STRING` → `INT`/`DECIMAL`/`TIMESTAMP`/`BOOLEAN`), removeu duplicatas e descartou valores impossíveis, gravando o resultado em Parquet particionado por mês. A decisão de deduplicação foi manter apenas a primeira ocorrência de cada `transaction_id` (usando `ROW_NUMBER()` ordenado por timestamp), assumindo que a ocorrência mais antiga é a transação original e qualquer repetição posterior é ruído de ingestão. Para valores impossíveis, defini como regra: `amount` não pode ser negativo, `risk_score` precisa estar entre 0 e 100 (escala do próprio score) e `credit_score` entre 300 e 850 (faixa padrão de score de crédito usada no mercado). O problema real encontrado foi justamente esse: o dataset sintético contém, de propósito, uma quantidade de registros fora dessas faixas — a Bronze descartou 2.060 linhas (30.000 → 27.940, cerca de 6,9% da base), confirmando que a sujeira estava lá e que os filtros funcionaram.
-
-## 5. Camada Silver — enriquecimento e padronização
-
-Essa etapa padronizou texto (removendo variações de caixa e espaços em `transaction_type`, `channel`, `merchant_category`, `status` e `segment`) e criou duas colunas derivadas: `amount_range` (faixa de valor: baixo/médio/alto/muito alto) e `day_period` (período do dia: manhã/tarde/noite/madrugada, a partir da hora do timestamp). A decisão de escolher essas duas colunas — em vez de outras possíveis — foi pensando em dimensões que costumam se relacionar com risco de fraude: horário incomum e valor fora do padrão são sinais clássicos em detecção de fraude transacional. Sobre `channel` e `merchant_category`: **ambas as colunas foram mantidas na Silver**, apenas padronizadas (`lower`/`trim`), porque são justamente as dimensões que a Etapa 1 já identificou como as que mais variam a taxa de fraude (canal `app` e categoria `viagem` concentram os maiores percentuais) — descartá-las na Silver inviabilizaria qualquer agregação por canal ou categoria na Gold. O problema real aqui foi de inconsistência de rótulo, não de tipo: o campo `segment` continha grafias variadas para o mesmo grupo (ex.: variações de caixa em "High-Risk"); resolvi com um `CASE`/`LIKE` que normaliza para os três rótulos oficiais do domínio (`High-Risk`, `Premium`, `Standard`). O total de linhas na Silver se manteve igual ao da Bronze (27.940), confirmando que essa camada só transforma, não filtra.
-
-## 6. Camada Gold — agregações
-
-Essa etapa criou três tabelas agregadas a partir da Silver, todas pensando no que a Etapa 3 provavelmente vai precisar (análise ou modelagem de detecção de fraude): `gold_fraud_by_channel_month` (taxa de fraude, ticket médio e score de risco médio por mês e canal — 48 linhas), `gold_segment_category_summary` (volume, valor total, ticket médio e taxa de fraude por segmento de cliente e categoria de comerciante — 18 linhas) e `gold_risk_profile_by_period` (taxa de fraude e score de risco médio por período do dia e faixa de score de crédito — 12 linhas). A decisão de escolher essas três combinações de dimensões — canal×mês, segmento×categoria, período×score de crédito — foi para cobrir três ângulos diferentes de análise de risco (temporal/operacional, perfil de cliente, e comportamento de crédito), já que a Etapa 3 precisa de variáveis agregadas que sirvam como possíveis features para um modelo de fraude, não apenas números soltos por transação. O problema real aqui foi mais sutil: como as tabelas Gold dependem da Silver, na primeira tentativa em que a Silver ficou vazia (por causa do problema de paste corrompido descrito na etapa 1), as três Gold foram criadas com 0 linhas sem erro aparente — o `CREATE TABLE ... AS SELECT` simplesmente gerou uma tabela vazia, sem lançar exceção. Só percebi o problema ao conferir o `COUNT(*)` manualmente, o que reforça a importância de sempre validar volumes entre camadas, e não assumir sucesso só porque o comando não deu erro.
-
-## Perguntas específicas
-
-**1. Quantas linhas sobreviveram da Bronze em diante? Alguma foi descartada — por quê?**
-Da Raw (30.000 linhas) para a Bronze, sobreviveram **27.940 linhas** — foram descartadas **2.060 linhas** (≈6,9%) por dois motivos: (a) duplicatas de `transaction_id` (mantida apenas a primeira ocorrência) e (b) valores fora de faixas fisicamente/logicamente possíveis (`amount` negativo, `risk_score` fora de 0–100, `credit_score` fora de 300–850, ou campos-chave nulos). Da Bronze para a Silver não houve mais descarte — as 27.940 linhas se mantiveram, já que a Silver só enriquece e padroniza, não filtra.
-
-**2. Sua Silver layer usa as colunas `channel` e `merchant_category`? Justifique.**
-Sim, as duas colunas foram mantidas na Silver (com padronização de texto, mas sem serem descartadas). A justificativa é que ambas são dimensões-chave de análise de fraude já identificadas na Etapa 1: a taxa de fraude varia de forma relevante entre canais (`app` tem quase o triplo da taxa de `pos`) e entre categorias de comerciante (`viagem` tem mais que o dobro da média geral). Remover essas colunas na Silver impediria qualquer agregação por canal ou categoria nas tabelas Gold, que são justamente as análises mais úteis para a Etapa 3.
-
-**3. Que agregações você colocou na Gold, e por que essas?**
-Três: (1) fraude e ticket médio por **canal × mês**, respondendo "onde e quando a fraude está concentrada operacionalmente"; (2) volume, valor e fraude por **segmento de cliente × categoria de comerciante**, respondendo "que perfil de cliente combinado com que tipo de compra tem mais risco"; e (3) risco e fraude por **período do dia × faixa de score de crédito**, respondendo "que combinação de horário e histórico de crédito é mais associada a fraude". As três foram escolhidas para dar à Etapa 3 candidatas a features agregadas (não apenas dados brutos por transação) cobrindo os três eixos mais relevantes para um modelo de fraude: tempo/canal, perfil de cliente, e comportamento de crédito.
