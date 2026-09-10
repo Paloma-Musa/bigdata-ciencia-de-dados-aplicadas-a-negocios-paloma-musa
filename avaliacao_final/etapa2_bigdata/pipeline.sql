@@ -305,7 +305,6 @@ GROUP BY segment, merchant_category;
 -- Gold 3 (bônus): perfil de risco por período do dia e faixa de score de crédito
 -- ================================================================================
 
---    útil se a Etapa 3 for construir/avaliar um modelo de detecção de fraude
 DROP TABLE IF EXISTS gold_risk_profile_by_period;
 CREATE TABLE gold_risk_profile_by_period
 STORED AS PARQUET AS
@@ -331,7 +330,7 @@ GROUP BY
     END;
 
 -- ================================================================================
--- Checagens rápidas (rode manualmente para conferir os números)
+-- Checagens
 -- ================================================================================
 -- SELECT COUNT(*) FROM raw_transactions;
 -- SELECT COUNT(*) FROM bronze_transactions;
