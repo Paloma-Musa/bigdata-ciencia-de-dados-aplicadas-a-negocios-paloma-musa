@@ -17,7 +17,7 @@ Após o processo de tratamento e organização dos dados nas camadas Bronze e Si
 
 Para cada dimensão, foram consideradas a quantidade total de transações, a quantidade de transações identificadas como fraudulentas e a respectiva taxa de fraude. A taxa de fraude foi calculada pela razão entre o número de transações fraudulentas e o total de transações de cada grupo.
 
-3.1 Risco por canal
+### 3.1 Risco por canal
 
 A análise por canal permite identificar quais meios de pagamento apresentam maior concentração proporcional de transações fraudulentas.
 
@@ -36,7 +36,7 @@ Esse resultado indica que as transações realizadas pelo aplicativo representam
 
 Diante desse resultado, recomenda-se priorizar mecanismos adicionais de detecção e autenticação para as transações realizadas pelo app, como autenticação em duas etapas, biometria, análise do dispositivo e regras de detecção baseadas no comportamento do cliente. A adoção dessas medidas deve ser direcionada principalmente às situações classificadas como de maior risco, evitando aumentar desnecessariamente a fricção para transações legítimas.
 
-3.2 Risco por categoria de estabelecimento
+### 3.2 Risco por categoria de estabelecimento
 
 A segunda análise considera a categoria do estabelecimento em que a transação foi realizada. Essa dimensão permite verificar se determinados segmentos apresentam maior incidência proporcional de fraude.
 
@@ -57,7 +57,7 @@ Uma possível explicação está nas características das transações relaciona
 
 Como ação, recomenda-se que a área de risco avalie a criação ou o reforço de regras específicas para transações relacionadas à categoria viagem, considerando conjuntamente fatores como valor da transação, canal utilizado, localização, histórico do cliente e comportamento anterior. Essa abordagem permite evitar que a categoria seja tratada isoladamente como indicativo de fraude.
 
-3.3 Padrão temporal
+### 3.3 Padrão temporal
 
 A terceira análise busca verificar se existe variação na ocorrência de fraudes de acordo com o período do dia em que as transações são realizadas.
 
@@ -76,7 +76,7 @@ Uma possível explicação é que transações realizadas em horários de menor 
 
 Como ação, recomenda-se utilizar o horário da transação como uma variável adicional nos mecanismos de detecção de fraude. Transações realizadas durante a madrugada poderiam receber uma avaliação de risco adicional, especialmente quando combinadas com outros sinais, como valor elevado, canal de maior risco, dispositivo desconhecido ou comportamento atípico do cliente.
 
-3.4 Síntese dos principais achados
+### 3.4 Síntese dos principais achados
 
 As três análises permitem identificar diferentes dimensões associadas ao risco de fraude na base da TechPay. O canal app apresentou a maior taxa de fraude entre os canais, com 3,72%, enquanto a categoria viagem apresentou a maior taxa entre os estabelecimentos, com 5,17%. Na dimensão temporal, a madrugada apresentou a maior taxa de fraude, com 3,22%.
 
