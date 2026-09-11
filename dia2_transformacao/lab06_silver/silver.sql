@@ -1,0 +1,1447 @@
+-- ## Usando a ROTA A — Cluster real (Hive)
+
+-- ### Passo 1 — Juntar transações com clientes (a Silver)
+
+```sql
+CREATE TABLE silver_transactions
+STORED AS PARQUET AS
+SELECT /*+ MAPJOIN(c) */
+  t.transaction_id,
+  t.customer_id,
+  t.amount,
+  t.transaction_type,
+  t.status,
+  t.risk_score,
+  t.is_fraud,
+  t.ts,
+  c.segment,
+  c.credit_score,
+  YEAR(t.ts)  AS year,
+  MONTH(t.ts) AS month,
+  DAY(t.ts)   AS day,
+  DAYOFWEEK(t.ts) AS day_of_week,
+  CASE
+    WHEN t.amount < 100  THEN 'baixo'
+    WHEN t.amount < 1000 THEN 'medio'
+    ELSE 'alto'
+  END AS amount_band
+FROM bronze_transactions t
+JOIN bronze_customers c ON t.customer_id = c.customer_id;
+```
+
+-- hive> CREATE TABLE silver_transactions
+-- STORED AS PARQUET AS
+-- SELECT /*+ MAPJOIN(c) */
+--   t.transaction_id,
+--   t.customer_id,
+--      >  t.amount,
+--   t.transaction_type,
+--   t.status,
+--   t.risk_    > score,
+--   t.is_fraud,
+--       > t.ts,
+--       > c.segment,
+--   c.credit_score,
+--       > YEAR(t.ts)  AS y    > ear,
+--   MONTH(t.ts) AS month,
+--       > DAY(t.ts)   AS da    > y,
+--   DAYOFWEEK(t.ts) AS day    > _of_week,
+--   C    > ASE
+--      >    WHEN t.amount < 100  TH    > EN 'baixo'
+--       >   WHEN t.amount < 1000 THEN 'me    > dio'
+--     ELSE    >  'alto'
+--   END AS a    > mount_band
+-- FROM bronze_transactions t
+-- JO    > IN bronze_cus    > tomers c ON t.customer_id = c.customer_id;    >     >     >     >     >
+-- 2026-09-10 21:37:20,045 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: 3ee570c3-832f-4569-aa50-80a0d5c6742a
+-- 2026-09-10 21:37:20,324 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2): CREATE TABLE silver_transactions
+-- STORED AS PARQUET AS
+-- SELECT /*+ MAPJOIN(c) */
+--   t.transaction_id,
+--   t.customer_id,
+--   t.amount,
+--   t.transaction_type,
+--   t.status,
+--   t.risk_score,
+--   t.is_fraud,
+--   t.ts,
+--   c.segment,
+--   c.credit_score,
+--   YEAR(t.ts)  AS year,
+--   MONTH(t.ts) AS month,
+--   DAY(t.ts)   AS day,
+--   DAYOFWEEK(t.ts) AS day_of_week,
+--   CASE
+--     WHEN t.amount < 100  THEN 'baixo'
+--     WHEN t.amount < 1000 THEN 'medio'
+--     ELSE 'alto'
+--   END AS amount_band
+-- FROM bronze_transactions t
+-- JOIN bronze_customers c ON t.customer_id = c.customer_id
+-- 2026-09-10 21:37:21,100 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:37:21,116 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 21:37:21,177 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] sqlstd.SQLStdHiveAccessController (SQLStdHiveAccessController.java:<init>(96)) - Created SQLStdHiveAccessController for session context : HiveAuthzSessionContext [sessionString=3ee570c3-832f-4569-aa50-80a0d5c6742a, clientType=HIVECLI]
+-- 2026-09-10 21:37:21,184 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] session.SessionState (SessionState.java:setAuthorizerV2Config(950)) - METASTORE_FILTER_HOOK will be ignored, since hive.security.authorization.manager is set to instance of HiveAuthorizerFactory.
+-- 2026-09-10 21:37:21,188 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl to org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook
+-- 2026-09-10 21:37:21,192 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:37:21,194 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:37:21,200 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:37:21,202 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- 2026-09-10 21:37:21,207 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:37:21,208 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:37:21,215 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:37:21,219 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:37:21,220 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:37:21,223 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:37:21,282 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeCreateTable(12993)) - Creating table default.silver_transactions position=13
+-- 2026-09-10 21:37:21,378 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:37:21,381 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:37:21,386 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:37:21,388 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:37:21,391 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:37:21,402 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:37:21,404 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:37:21,478 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:21,480 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:21,505 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.ParseDriver (ParseDriver.java:parseHint(243)) - Parsing hint:  MAPJOIN(c)
+-- 2026-09-10 21:37:21,517 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.ParseDriver (ParseDriver.java:parseHint(258)) - Parse Completed
+-- 2026-09-10 21:37:21,550 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 21:37:21,551 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:37:21,555 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:21,557 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:23,272 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:23,274 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:23,307 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:37:23,308 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:37:23,311 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:23,316 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:23,323 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/user/hive/warehouse/.hive-staging_hive_2026-09-10_21-37-20_379_8856216963434158363-1
+-- 2026-09-10 21:37:23,354 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 21:37:25,425 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,427 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,619 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,622 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,694 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,697 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,703 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,704 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:25,741 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:37:25,743 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:37:25,813 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,816 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,822 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,824 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,830 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,831 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,837 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,840 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:25,846 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_customers
+-- 2026-09-10 21:37:25,848 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_customers
+-- 2026-09-10 21:37:25,854 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.ParseDriver (ParseDriver.java:parseHint(243)) - Parsing hint:  MAPJOIN(c)
+-- 2026-09-10 21:37:25,855 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.ParseDriver (ParseDriver.java:parseHint(258)) - Parse Completed
+-- 2026-09-10 21:37:28,389 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeCreateTable(12993)) - Creating table default.silver_transactions position=13
+-- 2026-09-10 21:37:28,394 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:37:28,400 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:37:28,405 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:28,409 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:28,426 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:37:28,428 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:37:28,431 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:37:28,433 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:28,437 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:37:28,499 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:37:28,504 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:37:28,512 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:37:28,527 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:28,533 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:37:28,599 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:37:28,608 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:37:28,612 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:37:28,618 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:28,631 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:28,869 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:28,871 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:28,880 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 21:37:28,953 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(10)
+-- 2026-09-10 21:37:28,954 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(9)
+-- 2026-09-10 21:37:28,958 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(539)) - Processing for JOIN(8)
+-- 2026-09-10 21:37:28,960 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(6)
+-- 2026-09-10 21:37:28,962 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(2)
+-- 2026-09-10 21:37:28,964 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(1)
+-- 2026-09-10 21:37:28,974 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 21:37:28,979 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(7)
+-- 2026-09-10 21:37:28,980 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(5)
+-- 2026-09-10 21:37:28,982 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(4)
+-- 2026-09-10 21:37:28,985 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(3)
+-- 2026-09-10 21:37:29,046 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneJoinOperator(1097)) - JOIN 8 oldExprs: {0=[Column[VALUE._col0], Column[KEY.reducesinkkey0], Column[VALUE._col1], Column[VALUE._col2], Column[VALUE._col3], Column[VALUE._col4], Column[VALUE._col5], Column[VALUE._col6]], 1=[Column[KEY.reducesinkkey0], Column[VALUE._col0], Column[VALUE._col1]]}
+-- 2026-09-10 21:37:29,050 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneJoinOperator(1210)) - JOIN 8 newExprs: {0=[Column[VALUE._col0], Column[KEY.reducesinkkey0], Column[VALUE._col1], Column[VALUE._col2], Column[VALUE._col3], Column[VALUE._col4], Column[VALUE._col5], Column[VALUE._col6]], 1=[Column[VALUE._col0], Column[VALUE._col1]]}
+-- 2026-09-10 21:37:29,055 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 6 oldColExprMap: {VALUE._col2=Column[_col3], VALUE._col3=Column[_col4], VALUE._col4=Column[_col5], VALUE._col5=Column[_col6], VALUE._col0=Column[_col0], VALUE._col1=Column[_col2], KEY.reducesinkkey0=Column[_col1], VALUE._col6=Column[_col7]}
+-- 2026-09-10 21:37:29,056 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 6 newColExprMap: {VALUE._col2=Column[_col3], VALUE._col3=Column[_col4], VALUE._col4=Column[_col5], VALUE._col5=Column[_col6], VALUE._col0=Column[_col0], VALUE._col1=Column[_col2], KEY.reducesinkkey0=Column[_col1], VALUE._col6=Column[_col7]}
+-- 2026-09-10 21:37:29,058 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 7 oldColExprMap: {VALUE._col0=Column[_col1], VALUE._col1=Column[_col2], KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:37:29,060 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 7 newColExprMap: {VALUE._col0=Column[_col1], VALUE._col1=Column[_col2], KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:37:29,111 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:29,113 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:29,119 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_database: @hive#default
+-- 2026-09-10 21:37:29,121 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_database: @hive#default
+-- 2026-09-10 21:37:29,604 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/hive/warehouse/bronze_customers length: 718985 file count: 1  directory count: 1
+-- 2026-09-10 21:37:29,607 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/hive/warehouse/bronze_transactions length: 1599533 file count: 1  directory count: 1
+-- 2026-09-10 21:37:29,669 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1
+-- 2026-09-10 21:37:29,679 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.LocalMapJoinProcFactory (LocalMapJoinProcFactory.java:process(139)) - Setting max memory usage to 0.9 for table sink not followed by group by
+-- 2026-09-10 21:37:29,720 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-10 21:37:29,738 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 21:37:29,739 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-10 21:37:29,956 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-10 21:37:29,958 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-10 21:37:29,962 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-10 21:37:29,964 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vectorized.input.format IS true]
+-- 2026-09-10 21:37:29,965 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 21:37:29,980 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 21:37:29,982 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 21:37:30,003 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:t.transaction_id, type:int, comment:null), FieldSchema(name:t.customer_id, type:int, comment:null), FieldSchema(name:t.amount, type:float, comment:null), FieldSchema(name:t.transaction_type, type:string, comment:null), FieldSchema(name:t.status, type:string, comment:null), FieldSchema(name:t.risk_score, type:float, comment:null), FieldSchema(name:t.is_fraud, type:boolean, comment:null), FieldSchema(name:t.ts, type:timestamp, comment:null), FieldSchema(name:c.segment, type:string, comment:null), FieldSchema(name:c.credit_score, type:int, comment:null), FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null), FieldSchema(name:day, type:int, comment:null), FieldSchema(name:day_of_week, type:int, comment:null), FieldSchema(name:amount_band, type:string, comment:null)], properties:null)
+-- 2026-09-10 21:37:30,018 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2); Time taken: 9.761 seconds
+-- 2026-09-10 21:37:30,020 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 21:37:30,029 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:37:30,037 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2): CREATE TABLE silver_transactions
+-- STORED AS PARQUET AS
+-- SELECT /*+ MAPJOIN(c) */
+--   t.transaction_id,
+--   t.customer_id,
+--   t.amount,
+--   t.transaction_type,
+--   t.status,
+--   t.risk_score,
+--   t.is_fraud,
+--   t.ts,
+--   c.segment,
+--   c.credit_score,
+--   YEAR(t.ts)  AS year,
+--   MONTH(t.ts) AS month,
+--   DAY(t.ts)   AS day,
+--   DAYOFWEEK(t.ts) AS day_of_week,
+--   CASE
+--     WHEN t.amount < 100  THEN 'baixo'
+--     WHEN t.amount < 1000 THEN 'medio'
+--     ELSE 'alto'
+--   END AS amount_band
+-- FROM bronze_transactions t
+-- JOIN bronze_customers c ON t.customer_id = c.customer_id
+-- 2026-09-10 21:37:30,113 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2
+-- 2026-09-10 21:37:30,117 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2
+-- Total jobs = 1
+-- 2026-09-10 21:37:30,120 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 1
+-- 2026-09-10 21:37:30,149 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-5:MAPREDLOCAL] in serial mode
+-- 2026-09-10 21:37:30,154 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(178)) - Generating plan file file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10006/plan.xml
+-- 2026-09-10 21:37:30,417 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapredLocalWork using kryo
+-- 2026-09-10 21:37:30,764 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(325)) - Executing: /opt/hadoop/bin/hadoop jar /opt/hive/lib/hive-exec-3.1.3.jar org.apache.hadoop.hive.ql.exec.mr.ExecDriver  -localtask -plan file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10006/plan.xml   -jobconffile file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10007/jobconf.xml
+-- SLF4J: Found binding in [jar:file:/opt/hadoop/share/hadoop/common/lib/slf4j-reload4j-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]2026-09-10 21:37:33,897 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - SLF4J: Class path contains multiple SLF4J bindings.
+
+-- SLF4J: Found binding in [jar:file:/opt/hive/lib/log4j-slf4j-impl-2.17.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+-- SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+-- 2026-09-10 21:37:34,237 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - SLF4J: Actual binding is of type [org.slf4j.impl.Reload4jLoggerFactory]
+-- 2026-09-10 21:39:59,699 WARN  [main] common.LogUtils (LogUtils.java:logConfigLocation(192)) - hive-site.xml not found on CLASSPATH
+-- 2026-09-10 21:39:59,699 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:39:56,174 INFO  [main] conf.HiveConf (HiveConf.java:findConfigFile(187)) - Found configuration file null
+-- 2026-09-10 21:40:00,389 INFO  [main] exec.SerializationUtilities (SerializationUtilities.java:deserializePlan(609)) - Deserializing MapredLocalWork using kryo
+-- 2026-09-10 21:40:00     Starting to launch local task to process map join;      maximum memory = 239075328
+-- 2026-09-10 21:40:01,322 INFO  [main] mr.MapredLocalTask (MapredLocalTask.java:initializeOperators(496)) - fetchoperator for $hdt$_1:c created
+-- 2026-09-10 21:40:01,323 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:00,954 INFO  [main] mr.MapredLocalTask (SessionState.java:printInfo(1227)) - 2026-09-10 21:40:00      Starting to launch local task to process map join;      maximum memory = 239075328
+-- 2026-09-10 21:40:01,323 INFO  [main] exec.TableScanOperator (Operator.java:initialize(344)) - Initializing operator TS[3]
+-- 2026-09-10 21:40:01,324 INFO  [main] exec.FilterOperator (Operator.java:initialize(344)) - Initializing operator FIL[12]
+-- 2026-09-10 21:40:02,495 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:02,494 INFO  [main] exec.SelectOperator (Operator.java:initialize(344)) - Initializing operator SEL[5]
+-- 2026-09-10 21:40:02,495 INFO  [main] exec.SelectOperator (SelectOperator.java:initializeOp(73)) - SELECT struct<customer_id:int,name:string,cpf:string,email:string,segment:string,credit_score:int,created_at:date>
+-- 2026-09-10 21:40:02,500 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:02,495 INFO  [main] exec.HashTableSinkOperator (Operator.java:initialize(344)) - Initializing operator HASHTABLESINK[14]
+-- 2026-09-10 21:40:02,504 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:02,496 INFO  [main] mapjoin.MapJoinMemoryExhaustionHandler (MapJoinMemoryExhaustionHandler.java:<init>(61)) - JVM Max Heap Size: 239075328
+-- 2026-09-10 21:40:02,542 INFO  [main] persistence.HashMapWrapper (HashMapWrapper.java:calculateTableSize(97)) - Key count from statistics is -1; setting map size to 100000
+-- 2026-09-10 21:40:02,543 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:02,543 INFO  [main] mr.MapredLocalTask (MapredLocalTask.java:initializeOperators(516)) - fetchoperator for $hdt$_1:c initialized
+-- 2026-09-10 21:40:04,772 INFO  [main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.input.dir is deprecated. Instead, use mapreduce.input.fileinputformat.inputdir
+-- 2026-09-10 21:40:05,739 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:05,738 INFO  [main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 21:40:07,646 INFO  [main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.task.id is deprecated. Instead, use mapreduce.task.attempt.id
+-- 2026-09-10 21:40:08,006 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(125)) - at row 0. reading next block
+-- 2026-09-10 21:40:08,006 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,006 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:initialize(211)) - RecordReader initialized will read a total of 9993 records.
+-- 2026-09-10 21:40:08,107 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(134)) - block read in memory in 101 ms. row count = 9993
+-- 2026-09-10 21:40:08,692 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,691 INFO  [main] exec.TableScanOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_TS_3:9993, RECORDS_OUT_INTERMEDIATE:0,
+-- 2026-09-10 21:40:08,696 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,692 INFO  [main] exec.SelectOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_SEL_5:9993, RECORDS_OUT_INTERMEDIATE:0,
+-- 2026-09-10 21:40:08,699 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,692 INFO  [main] exec.HashTableSinkOperator (HashTableSinkOperator.java:flushToFile(293)) - Temp URI for side table: file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4
+-- 2026-09-10 21:40:08,692 INFO  [main] exec.FilterOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_FIL_12:9993,
+-- 2026-09-10 21:40:08,703 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,694 INFO  [main] exec.HashTableSinkOperator (SessionState.java:printInfo(1227)) - 2026-09-10 21:40:08      Dump the side-table for tag: 1 with group count: 9993 into file: file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/MapJoin-mapfile01--.hashtable
+-- 2026-09-10 21:40:08,694 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08    Dump the side-table for tag: 1 with group count: 9993 into file: file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/MapJoin-mapfile01--.hashtable
+-- 2026-09-10 21:40:08     Uploaded 1 File to: file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/MapJoin-mapfile01--.hashtable (326088 bytes)2026-09-10 21:40:08,948 INFO  [main] exec.HashTableSinkOperator (SessionState.java:printInfo(1227)) - 2026-09-10 21:40:08   Uploaded 1 File to: file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/MapJoin-mapfile01--.hashtable (326088 bytes)
+
+-- 2026-09-10 21:40:08,949 INFO  [main] mr.MapredLocalTask (SessionState.java:printInfo(1227)) - 2026-09-10 21:40:08      End of local task; Time Taken: 7.995 sec.
+-- 2026-09-10 21:40:08,949 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08,948 INFO  [main] exec.HashTableSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_HASHTABLESINK_14:0,
+-- 2026-09-10 21:40:08,949 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:40:08    End of local task; Time Taken: 7.995 sec.
+-- 2026-09-10 21:41:09,177 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 21:41:09,170 WARN  [Thread-0] util.ShutdownHookManager (ShutdownHookManager.java:executeShutdown(128)) - ShutdownHook 'ClientFinalizer' timeout, java.util.concurrent.TimeoutException
+-- 2026-09-10 21:40:39,113 WARN  [Thread-0] util.ShutdownHookManager (ShutdownHookManager.java:executeShutdown(128)) - ShutdownHook '' timeout, java.util.concurrent.TimeoutException
+-- java.util.concurrent.TimeoutException
+--         at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+--         at org.apache.hadoop.util.ShutdownHookManager.executeShutdown(ShutdownHookManager.java:124)
+--         at org.apache.hadoop.util.ShutdownHookManager$1.run(ShutdownHookManager.java:95)
+-- 2026-09-10 21:41:09,183 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - java.util.concurrent.TimeoutException
+-- 2026-09-10 21:41:09,197 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) -        at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+-- 2026-09-10 21:41:09,199 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) -        at org.apache.hadoop.util.ShutdownHookManager.executeShutdown(ShutdownHookManager.java:124)
+-- 2026-09-10 21:41:09,201 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) -        at org.apache.hadoop.util.ShutdownHookManager$1.run(ShutdownHookManager.java:95)
+-- 2026-09-10 21:41:39,188 WARN  [Thread-0] util.ShutdownHookManager (ShutdownHookManager.java:executeShutdown(128)) - ShutdownHook 'KeyProviderCacheFinalizer' timeout, java.util.concurrent.TimeoutException
+-- java.util.concurrent.TimeoutException
+--         at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+--         at org.apache.hadoop.util.ShutdownHookManager.executeShutdown(ShutdownHookManager.java:124)
+--         at org.apache.hadoop.util.ShutdownHookManager$1.run(ShutdownHookManager.java:95)
+-- Execution completed successfully
+-- 2026-09-10 21:41:59,884 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Execution completed successfully
+-- MapredLocal task succeeded
+-- 2026-09-10 21:41:59,887 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - MapredLocal task succeeded
+-- 2026-09-10 21:41:59,890 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(359)) - Execution completed successfully
+-- Launching Job 1 out of 1
+-- 2026-09-10 21:41:59,947 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 1
+-- 2026-09-10 21:41:59,965 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-4:MAPRED] in serial mode
+-- Number of reduce tasks is set to 0 since there's no reduce operator
+-- 2026-09-10 21:41:59,967 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks is set to 0 since there's no reduce operator
+-- 2026-09-10 21:41:59,992 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1
+-- 2026-09-10 21:42:00,080 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-10 21:42:00,335 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.ExecDriver (ExecDriver.java:execute(343)) - Archive 1 hash table files to file:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/Stage-4.tar.gz
+-- 2026-09-10 21:42:00,338 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.submit.replication is deprecated. Instead, use mapreduce.client.submit.file.replication
+-- 2026-09-10 21:42:03,177 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.ExecDriver (ExecDriver.java:execute(350)) - Upload 1 archive file  fromfile:/tmp/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-local-10004/HashTable-Stage-4/Stage-4.tar.gz to: hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-mr-10005/HashTable-Stage-4/Stage-4.tar.gz
+-- 2026-09-10 21:42:03,196 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mr.ExecDriver (ExecDriver.java:execute(355)) - Add 1 archive file to distributed cache. Archive file: hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-mr-10005/HashTable-Stage-4/Stage-4.tar.gz
+-- 2026-09-10 21:42:03,198 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias $hdt$_0:t
+-- 2026-09-10 21:42:03,201 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/hive/warehouse/bronze_transactions
+-- 2026-09-10 21:42:03,207 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1
+-- 2026-09-10 21:42:03,230 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-10 21:42:03,438 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 13.30KB
+-- 2026-09-10 21:42:04,027 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 21:42:05,506 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] fs.FSStatsPublisher (FSStatsPublisher.java:init(53)) - created : hdfs://localhost:9000/user/hive/warehouse/.hive-staging_hive_2026-09-10_21-37-20_379_8856216963434158363-1/-ext-10003
+-- 2026-09-10 21:42:05,641 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 21:42:05,692 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-mr-10009/6eb929e5-4d1e-4891-a467-8989d49fa1d6/map.xml
+-- 2026-09-10 21:42:07,208 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-10 21:42:07,263 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1789086404085_0001
+-- 2026-09-10 21:42:08,129 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/3ee570c3-832f-4569-aa50-80a0d5c6742a/hive_2026-09-10_21-37-20_379_8856216963434158363-1/-mr-10009/6eb929e5-4d1e-4891-a467-8989d49fa1d6/map.xml
+-- 2026-09-10 21:42:08,139 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-10 21:42:08,223 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/hive/warehouse/bronze_transactions; using filter path hdfs://localhost:9000/user/hive/warehouse/bronze_transactions
+-- 2026-09-10 21:42:08,413 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 1
+-- 2026-09-10 21:42:08,526 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-10 21:42:08,538 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-10 21:42:09,102 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-10 21:42:09,220 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - yarn.resourcemanager.system-metrics-publisher.enabled is deprecated. Instead, use yarn.system-metrics-publisher.enabled
+-- 2026-09-10 21:42:09,270 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1789086404085_0001
+-- 2026-09-10 21:42:09,273 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-10 21:42:10,363 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] conf.Configuration (Configuration.java:getConfResourceAsInputStream(2854)) - resource-types.xml not found
+-- 2026-09-10 21:42:10,371 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] resource.ResourceUtils (ResourceUtils.java:addResourcesFileToConf(476)) - Unable to find 'resource-types.xml'.
+-- 2026-09-10 21:42:11,465 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1789086404085_0001
+-- 2026-09-10 21:42:11,647 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0001/
+-- Starting Job = job_1789086404085_0001, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0001/
+-- 2026-09-10 21:42:11,654 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1789086404085_0001, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0001/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0001
+-- 2026-09-10 21:42:11,657 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0001
+-- Hadoop job information for Stage-4: number of mappers: 1; number of reducers: 0
+-- 2026-09-10 21:42:47,117 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-4: number of mappers: 1; number of reducers: 0
+-- 2026-09-10 21:42:47,300 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-10 21:42:47,278 Stage-4 map = 0%,  reduce = 0%
+-- 2026-09-10 21:42:47,307 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 21:42:47,278 Stage-4 map = 0%,  reduce = 0%
+-- 2026-09-10 21:43:28,252 Stage-4 map = 100%,  reduce = 0%, Cumulative CPU 26.67 sec
+-- 2026-09-10 21:43:28,253 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 21:43:28,252 Stage-4 map = 100%,  reduce = 0%, Cumulative CPU 26.67 sec
+-- MapReduce Total cumulative CPU time: 26 seconds 670 msec
+-- 2026-09-10 21:43:35,772 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 26 seconds 670 msec
+-- Ended Job = job_1789086404085_0001
+-- 2026-09-10 21:43:35,948 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1789086404085_0001
+-- 2026-09-10 21:43:36,251 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-0:MOVE] in serial mode
+-- 2026-09-10 21:43:36,470 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:43:36,481 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:43:36,552 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:43:36,557 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- Moving data to directory hdfs://localhost:9000/user/hive/warehouse/silver_transactions
+-- 2026-09-10 21:43:36,563 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] exec.Task (SessionState.java:printInfo(1227)) - Moving data to directory hdfs://localhost:9000/user/hive/warehouse/silver_transactions from hdfs://localhost:9000/user/hive/warehouse/.hive-staging_hive_2026-09-10_21-37-20_379_8856216963434158363-1/-ext-10002
+-- 2026-09-10 21:43:37,016 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-6:DDL] in serial mode
+-- 2026-09-10 21:43:37,166 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:43:37,171 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:43:37,176 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:43:37,560 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:43:37,565 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:43:37,597 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:43:37,622 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: create_table: Table(tableName:silver_transactions, dbName:default, owner:palomamusa, createTime:1789087417, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:boolean, comment:null), FieldSchema(name:ts, type:timestamp, comment:null), FieldSchema(name:segment, type:string, comment:null), FieldSchema(name:credit_score, type:int, comment:null), FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null), FieldSchema(name:day, type:int, comment:null), FieldSchema(name:day_of_week, type:int, comment:null), FieldSchema(name:amount_band, type:string, comment:null)], location:null, inputFormat:org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe, parameters:{serialization.format=1}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[], parameters:{bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:MANAGED_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-10 21:43:37,625 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=create_table: Table(tableName:silver_transactions, dbName:default, owner:palomamusa, createTime:1789087417, lastAccessTime:0, retention:0, sd:StorageDescriptor(cols:[FieldSchema(name:transaction_id, type:int, comment:null), FieldSchema(name:customer_id, type:int, comment:null), FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:transaction_type, type:string, comment:null), FieldSchema(name:status, type:string, comment:null), FieldSchema(name:risk_score, type:float, comment:null), FieldSchema(name:is_fraud, type:boolean, comment:null), FieldSchema(name:ts, type:timestamp, comment:null), FieldSchema(name:segment, type:string, comment:null), FieldSchema(name:credit_score, type:int, comment:null), FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null), FieldSchema(name:day, type:int, comment:null), FieldSchema(name:day_of_week, type:int, comment:null), FieldSchema(name:amount_band, type:string, comment:null)], location:null, inputFormat:org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat, outputFormat:org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat, compressed:false, numBuckets:-1, serdeInfo:SerDeInfo(name:null, serializationLib:org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe, parameters:{serialization.format=1}), bucketCols:[], sortCols:[], parameters:{}, skewedInfo:SkewedInfo(skewedColNames:[], skewedColValues:[], skewedColValueLocationMaps:{}), storedAsSubDirectories:false), partitionKeys:[], parameters:{bucketing_version=2}, viewOriginalText:null, viewExpandedText:null, tableType:MANAGED_TABLE, privileges:PrincipalPrivilegeSet(userPrivileges:{palomamusa=[PrivilegeGrantInfo(privilege:INSERT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:SELECT, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:UPDATE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true), PrivilegeGrantInfo(privilege:DELETE, createTime:-1, grantor:palomamusa, grantorType:USER, grantOption:true)]}, groupPrivileges:null, rolePrivileges:null), temporary:false, catName:hive, ownerType:USER)
+-- 2026-09-10 21:43:37,880 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] utils.MetaStoreUtils (MetaStoreUtils.java:updateTableStatsSlow(703)) - Updating table stats for silver_transactions
+-- 2026-09-10 21:43:37,885 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] utils.MetaStoreUtils (MetaStoreUtils.java:updateTableStatsSlow(705)) - Updated size of table silver_transactions to 1942509
+-- 2026-09-10 21:43:39,632 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:43:39,636 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:43:40,174 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-2:STATS] in serial mode
+-- 2026-09-10 21:43:40,179 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:43:40,183 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:43:40,187 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:43:40,191 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- 2026-09-10 21:43:40,198 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:43:40,205 WARN  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:43:40,209 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:43:40,218 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:43:40,221 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:43:40,227 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:43:40,230 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:43:40,236 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:43:40,264 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] stats.BasicStatsTask (BasicStatsTask.java:process(96)) - Executing stats task
+-- 2026-09-10 21:43:40,269 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] fs.FSStatsPublisher (FSStatsPublisher.java:init(53)) - created : hdfs://localhost:9000/user/hive/warehouse/.hive-staging_hive_2026-09-10_21-37-20_379_8856216963434158363-1/-ext-10003
+-- 2026-09-10 21:43:45,708 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.silver_transactions/   numRows 99996
+-- 2026-09-10 21:43:45,710 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] FileOperations (FSStatsAggregator.java:aggregateStats(101)) - Read stats for : default.silver_transactions/   rawDataSize     1499940
+-- 2026-09-10 21:43:45,715 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: alter_table: hive.default.silver_transactions newtbl=silver_transactions
+-- 2026-09-10 21:43:45,716 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=alter_table: hive.default.silver_transactions newtbl=silver_transactions
+-- 2026-09-10 21:43:45,920 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] stats.BasicStatsTask (BasicStatsTask.java:aggregateStats(280)) - Table default.silver_transactions stats: [numFiles=1, numRows=99996, totalSize=1942509, rawDataSize=1499940]
+-- MapReduce Jobs Launched:
+-- 2026-09-10 21:43:45,959 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-4: Map: 1   Cumulative CPU: 26.67 sec   HDFS Read: 1614032 HDFS Write: 1942600 SUCCESS
+-- 2026-09-10 21:43:45,962 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-4: Map: 1   Cumulative CPU: 26.67 sec   HDFS Read: 1614032 HDFS Write: 1942600 SUCCESS
+-- Total MapReduce CPU Time Spent: 26 seconds 670 msec
+-- 2026-09-10 21:43:45,965 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 26 seconds 670 msec
+-- 2026-09-10 21:43:45,967 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910213720_06a79a29-edbd-4c8a-ade9-386ca4d9a9f2); Time taken: 375.915 seconds
+-- OK
+-- 2026-09-10 21:43:45,970 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 21:43:45,972 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- Time taken: 385.73 seconds
+-- 2026-09-10 21:43:46,032 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 385.73 seconds
+-- 2026-09-10 21:43:46,036 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: 3ee570c3-832f-4569-aa50-80a0d5c6742a
+-- 2026-09-10 21:43:46,040 INFO  [3ee570c3-832f-4569-aa50-80a0d5c6742a main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+-- ### Passo 2 — Conferir se o JOIN não perdeu nem duplicou linhas
+
+```sql
+SELECT COUNT(*) FROM silver_transactions;
+SELECT COUNT(*) FROM bronze_transactions;
+```
+
+-- hive> SELECT COUNT(*) FROM silver_transactions;
+-- 2026-09-10 21:51:21,330 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 21:51:21,516 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910215121_f7290b37-51bf-46bf-9e52-9d795c3adb2f): SELECT COUNT(*) FROM silver_transactions
+-- 2026-09-10 21:51:22,150 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:51:22,155 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 21:51:22,218 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] sqlstd.SQLStdHiveAccessController (SQLStdHiveAccessController.java:<init>(96)) - Created SQLStdHiveAccessController for session context : HiveAuthzSessionContext [sessionString=a72e3552-b484-4a0e-a879-83afdb81fdfe, clientType=HIVECLI]
+-- 2026-09-10 21:51:22,222 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:setAuthorizerV2Config(950)) - METASTORE_FILTER_HOOK will be ignored, since hive.security.authorization.manager is set to instance of HiveAuthorizerFactory.
+-- 2026-09-10 21:51:22,224 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl to org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook
+-- 2026-09-10 21:51:22,226 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:51:22,227 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:51:22,230 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:51:22,232 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- 2026-09-10 21:51:22,236 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:51:22,237 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:51:22,239 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:51:22,241 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:51:22,242 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:51:22,244 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:51:22,251 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 21:51:22,253 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:51:22,256 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:51:22,257 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:51:22,259 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:51:22,260 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:51:22,261 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:51:22,272 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:22,275 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:22,918 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:51:22,938 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:51:23,114 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-51-21_568_6531877348782766309-1
+-- 2026-09-10 21:51:23,121 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 21:51:23,158 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] results.QueryResultsCache (QueryResultsCache.java:<init>(367)) - Initializing query results cache at /tmp/hive/_resultscache_
+-- 2026-09-10 21:51:23,172 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] results.QueryResultsCache (QueryResultsCache.java:<init>(388)) - Query results cache: cacheDirectory /tmp/hive/_resultscache_/results-5632b4e2-4784-46bd-8f6e-2269669f89cf, maxCacheSize 2147483648, maxEntrySize 10485760, maxEntryLifetime 3600000
+-- 2026-09-10 21:51:24,867 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:24,869 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:24,965 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:24,967 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:25,018 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:25,021 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:25,026 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:25,028 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:25,085 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 21:51:25,090 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 21:51:28,054 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 21:51:28,056 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 21:51:28,074 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:51:28,075 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:51:28,097 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:51:28,100 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:51:28,181 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:51:28,183 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:28,187 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 21:51:28,241 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:51:28,244 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:51:28,252 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-51-21_568_6531877348782766309-1
+-- 2026-09-10 21:51:28,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-51-21_568_6531877348782766309-1/-mr-10001/.hive-staging_hive_2026-09-10_21-51-21_568_6531877348782766309-1
+-- 2026-09-10 21:51:28,665 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 21:51:28,735 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(6)
+-- 2026-09-10 21:51:28,740 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(5)
+-- 2026-09-10 21:51:28,742 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(4)
+-- 2026-09-10 21:51:28,743 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(3)
+-- 2026-09-10 21:51:28,745 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(2)
+-- 2026-09-10 21:51:28,747 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-10 21:51:28,749 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 21:51:28,819 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 3 oldColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 21:51:28,821 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 3 newColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 21:51:29,465 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook to org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl
+-- 2026-09-10 21:51:29,469 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:51:29,472 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:51:29,474 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:51:29,476 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- 2026-09-10 21:51:29,502 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 21:51:29,506 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14777)) - Not eligible for results caching - no mr/tez/spark jobs
+-- 2026-09-10 21:51:29,509 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 21:51:29,535 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:_c0, type:bigint, comment:null)], properties:null)
+-- 2026-09-10 21:51:29,566 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[7]
+-- 2026-09-10 21:51:29,585 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910215121_f7290b37-51bf-46bf-9e52-9d795c3adb2f); Time taken: 8.125 seconds
+-- 2026-09-10 21:51:29,588 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 21:51:29,590 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:51:29,592 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910215121_f7290b37-51bf-46bf-9e52-9d795c3adb2f): SELECT COUNT(*) FROM silver_transactions
+-- 2026-09-10 21:51:29,600 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910215121_f7290b37-51bf-46bf-9e52-9d795c3adb2f); Time taken: 0.008 seconds
+-- OK
+-- 2026-09-10 21:51:29,605 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 21:51:29,607 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 99996
+-- 2026-09-10 21:51:29,614 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_LIST_SINK_7:1, RECORDS_OUT_INTERMEDIATE:0,
+-- Time taken: 8.151 seconds, Fetched: 1 row(s)
+-- 2026-09-10 21:51:29,654 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 8.151 seconds, Fetched: 1 row(s)
+-- 2026-09-10 21:51:29,658 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 21:51:29,664 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+-- hive> SELECT COUNT(*) FROM bronze_transactions;
+-- 2026-09-10 21:56:35,337 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 21:56:35,338 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 21:56:35,342 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910215635_a7cac01d-61d2-44bc-890e-c88f48e6e3f6): SELECT COUNT(*) FROM bronze_transactions
+-- 2026-09-10 21:56:35,369 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:56:35,370 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:56:35,371 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:56:35,374 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:56:35,374 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:56:35,376 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:56:35,377 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStoreClient (HiveMetaStoreClient.java:isCompatibleWith(346)) - Mestastore configuration metastore.filter.hook changed from org.apache.hadoop.hive.metastore.DefaultMetaStoreFilterHookImpl to org.apache.hadoop.hive.ql.security.authorization.plugin.AuthorizationMetaStoreFilterHook
+-- 2026-09-10 21:56:35,379 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Cleaning up thread local RawStore...
+-- 2026-09-10 21:56:35,379 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Cleaning up thread local RawStore...
+-- 2026-09-10 21:56:35,381 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: Done cleaning up thread local RawStore
+-- 2026-09-10 21:56:35,382 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=Done cleaning up thread local RawStore
+-- 2026-09-10 21:56:35,385 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:56:35,386 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 21:56:35,387 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 21:56:35,388 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:56:35,391 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:newRawStoreForConf(719)) - 0: Opening raw store with implementation class:org.apache.hadoop.hive.metastore.ObjectStore
+-- 2026-09-10 21:56:35,391 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:correctAutoStartMechanism(639)) - datanucleus.autoStartMechanismMode is set to unsupported value null . Setting it to value: ignored
+-- 2026-09-10 21:56:35,393 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:initializeHelper(482)) - ObjectStore, initialize called
+-- 2026-09-10 21:56:35,396 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.MetaStoreDirectSql (MetaStoreDirectSql.java:<init>(186)) - Using direct SQL, underlying DB is DERBY
+-- 2026-09-10 21:56:35,396 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.ObjectStore (ObjectStore.java:setConf(397)) - Initialized ObjectStore
+-- 2026-09-10 21:56:35,397 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.RetryingMetaStoreClient (RetryingMetaStoreClient.java:<init>(97)) - RetryingMetaStoreClient proxy=class org.apache.hadoop.hive.ql.metadata.SessionHiveMetaStoreClient ugi=palomamusa (auth:SIMPLE) retries=1 delay=1 lifetime=0
+-- 2026-09-10 21:56:35,402 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,403 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,418 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:56:35,419 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:56:35,433 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-56-35_367_2476427277843538231-1
+-- 2026-09-10 21:56:35,434 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 21:56:35,440 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,441 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,444 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,446 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,450 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,451 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,453 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,454 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,456 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:56:35,456 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:56:35,511 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 21:56:35,513 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 21:56:35,517 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:56:35,518 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:56:35,522 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:56:35,523 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:56:35,529 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:56:35,530 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,530 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:56:35,544 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:56:35,545 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:56:35,549 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-56-35_367_2476427277843538231-1
+-- 2026-09-10 21:56:35,551 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-56-35_367_2476427277843538231-1/-mr-10001/.hive-staging_hive_2026-09-10_21-56-35_367_2476427277843538231-1
+-- 2026-09-10 21:56:35,557 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 21:56:35,558 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(6)
+-- 2026-09-10 21:56:35,560 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(5)
+-- 2026-09-10 21:56:35,561 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(4)
+-- 2026-09-10 21:56:35,562 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(3)
+-- 2026-09-10 21:56:35,563 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(2)
+-- 2026-09-10 21:56:35,564 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-10 21:56:35,565 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 21:56:35,566 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 3 oldColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 21:56:35,567 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 3 newColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 21:56:35,569 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 21:56:35,570 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14777)) - Not eligible for results caching - no mr/tez/spark jobs
+-- 2026-09-10 21:56:35,571 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 21:56:35,571 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:_c0, type:bigint, comment:null)], properties:null)
+-- 2026-09-10 21:56:35,573 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[7]
+-- 2026-09-10 21:56:35,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910215635_a7cac01d-61d2-44bc-890e-c88f48e6e3f6); Time taken: 0.231 seconds
+-- 2026-09-10 21:56:35,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 21:56:35,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:56:35,575 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910215635_a7cac01d-61d2-44bc-890e-c88f48e6e3f6): SELECT COUNT(*) FROM bronze_transactions
+-- 2026-09-10 21:56:35,576 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910215635_a7cac01d-61d2-44bc-890e-c88f48e6e3f6); Time taken: 0.001 seconds
+-- OK
+-- 2026-09-10 21:56:35,577 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 21:56:35,578 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 99996
+-- 2026-09-10 21:56:35,579 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_LIST_SINK_7:1, RECORDS_OUT_INTERMEDIATE:0,
+-- Time taken: 0.236 seconds, Fetched: 1 row(s)
+-- 2026-09-10 21:56:35,603 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 0.236 seconds, Fetched: 1 row(s)
+-- 2026-09-10 21:56:35,606 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 21:56:35,609 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+-- -- Identificando as transações órfãs:
+
+```sql
+SELECT DISTINCT t.customer_id
+FROM bronze_transactions t
+LEFT JOIN bronze_customers c ON t.customer_id = c.customer_id
+WHERE c.customer_id IS NULL;
+```
+
+-- hive> SELECT DISTINCT t.customer_id
+-- FROM bronze_transactions t
+-- LEFT JOIN bronze_customers c ON     > t.customer_id = c.customer_id
+-- WHERE c.customer_i    > d IS NULL;    >
+-- 2026-09-10 21:58:37,409 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 21:58:37,409 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 21:58:37,413 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263): SELECT DISTINCT t.customer_id
+-- FROM bronze_transactions t
+-- LEFT JOIN bronze_customers c ON t.customer_id = c.customer_id
+-- WHERE c.customer_id IS NULL
+-- 2026-09-10 21:58:37,449 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:58:37,450 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 21:58:37,450 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 21:58:37,451 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:58:37,452 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,453 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,467 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,468 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,480 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:58:37,481 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:58:37,498 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 21:58:37,502 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 21:58:37,506 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,507 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,509 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,511 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,515 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,515 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,518 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,519 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,521 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:58:37,522 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_transactions
+-- 2026-09-10 21:58:37,526 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,527 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,530 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,531 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,533 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,534 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,537 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,538 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,540 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_customers
+-- 2026-09-10 21:58:37,542 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=bronze_customers
+-- 2026-09-10 21:58:37,831 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 21:58:37,834 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 21:58:37,840 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:58:37,841 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 21:58:37,845 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:58:37,846 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 21:58:37,869 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:58:37,870 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:58:37,874 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:58:37,875 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,877 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_transactions
+-- 2026-09-10 21:58:37,891 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:58:37,892 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:58:37,896 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 21:58:37,899 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,903 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.bronze_customers
+-- 2026-09-10 21:58:37,923 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 21:58:37,924 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:58:37,927 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 21:58:37,929 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 21:58:37,957 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10001/.hive-staging_hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 21:58:37,973 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 21:58:37,995 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(13)
+-- 2026-09-10 21:58:37,997 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(12)
+-- 2026-09-10 21:58:38,001 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(11)
+-- 2026-09-10 21:58:38,002 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(10)
+-- 2026-09-10 21:58:38,004 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(9)
+-- 2026-09-10 21:58:38,005 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(8)
+-- 2026-09-10 21:58:38,007 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(7)
+-- 2026-09-10 21:58:38,008 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(539)) - Processing for JOIN(6)
+-- 2026-09-10 21:58:38,009 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(4)
+-- 2026-09-10 21:58:38,013 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-10 21:58:38,014 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 21:58:38,015 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(5)
+-- 2026-09-10 21:58:38,016 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(3)
+-- 2026-09-10 21:58:38,017 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(2)
+-- 2026-09-10 21:58:38,019 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 10 oldColExprMap: {KEY._col0=Column[_col0]}
+-- 2026-09-10 21:58:38,020 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 10 newColExprMap: {KEY._col0=Column[_col0]}
+-- 2026-09-10 21:58:38,021 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneJoinOperator(1097)) - JOIN 6 oldExprs: {0=[Column[KEY.reducesinkkey0]], 1=[Column[KEY.reducesinkkey0]]}
+-- 2026-09-10 21:58:38,022 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneJoinOperator(1210)) - JOIN 6 newExprs: {0=[Column[KEY.reducesinkkey0]], 1=[Column[KEY.reducesinkkey0]]}
+-- 2026-09-10 21:58:38,023 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 5 oldColExprMap: {KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:58:38,024 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 5 newColExprMap: {KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:58:38,024 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 4 oldColExprMap: {KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:58:38,028 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 4 newColExprMap: {KEY.reducesinkkey0=Column[_col0]}
+-- 2026-09-10 21:58:38,157 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 21:58:38,318 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/hive/warehouse/bronze_customers length: 718985 file count: 1  directory count: 1
+-- 2026-09-10 21:58:38,322 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/hive/warehouse/bronze_transactions length: 1599533 file count: 1  directory count: 1
+-- 2026-09-10 21:58:38,368 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 21:58:38,372 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.LocalMapJoinProcFactory (LocalMapJoinProcFactory.java:process(139)) - Setting max memory usage to 0.55 for table sink  followed by group by
+-- 2026-09-10 21:58:38,416 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-10 21:58:38,424 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 21:58:38,425 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-10 21:58:38,532 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateGroupByOperator(2688)) - Vector GROUP BY operator will use processing mode HASH
+-- 2026-09-10 21:58:38,556 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-10 21:58:38,559 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-10 21:58:38,563 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-10 21:58:38,564 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vectorized.input.format IS true]
+-- 2026-09-10 21:58:38,566 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 21:58:38,568 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-10 21:58:38,570 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-10 21:58:38,571 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 1
+-- 2026-09-10 21:58:38,575 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-10 21:58:38,577 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-10 21:58:38,582 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 21:58:38,609 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14797)) - Not eligible for results caching - query contains non-transactional tables [bronze_transactions, bronze_customers]
+-- 2026-09-10 21:58:38,613 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 21:58:38,619 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:t.customer_id, type:int, comment:null)], properties:null)
+-- 2026-09-10 21:58:38,649 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[25]
+-- 2026-09-10 21:58:38,652 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263); Time taken: 1.239 seconds
+-- 2026-09-10 21:58:38,657 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 21:58:38,659 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 21:58:38,661 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263): SELECT DISTINCT t.customer_id
+-- FROM bronze_transactions t
+-- LEFT JOIN bronze_customers c ON t.customer_id = c.customer_id
+-- WHERE c.customer_id IS NULL
+-- 2026-09-10 21:58:38,668 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263
+-- 2026-09-10 21:58:38,675 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263
+-- Total jobs = 1
+-- 2026-09-10 21:58:38,680 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 1
+-- 2026-09-10 21:58:38,708 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-5:MAPREDLOCAL] in serial mode
+-- 2026-09-10 21:58:38,711 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(178)) - Generating plan file file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10007/plan.xml
+-- 2026-09-10 21:58:38,878 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapredLocalWork using kryo
+-- 2026-09-10 21:58:38,997 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(325)) - Executing: /opt/hadoop/bin/hadoop jar /opt/hive/lib/hive-exec-3.1.3.jar org.apache.hadoop.hive.ql.exec.mr.ExecDriver  -localtask -plan file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10007/plan.xml   -jobconffile file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10008/jobconf.xml
+-- 2026-09-10 21:58:41,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - SLF4J: Class path contains multiple SLF4J bindings.
+-- SLF4J: Found binding in [jar:file:/opt/hadoop/share/hadoop/common/lib/slf4j-reload4j-1.7.36.jar!/org/slf4j/impl/StaticLoggerBinder.class]2026-09-10 21:58:41,577 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - SLF4J: Found binding in [jar:file:/opt/hive/lib/log4j-slf4j-impl-2.17.1.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+
+-- 2026-09-10 21:58:41,581 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+-- SLF4J: Actual binding is of type [org.slf4j.impl.Reload4jLoggerFactory]
+-- 2026-09-10 22:00:27,642 WARN  [main] common.LogUtils (LogUtils.java:logConfigLocation(192)) - hive-site.xml not found on CLASSPATH
+-- 2026-09-10 22:00:27,642 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:23,959 INFO  [main] conf.HiveConf (HiveConf.java:findConfigFile(187)) - Found configuration file null
+-- 2026-09-10 22:00:28,185 INFO  [main] exec.SerializationUtilities (SerializationUtilities.java:deserializePlan(609)) - Deserializing MapredLocalWork using kryo
+-- 2026-09-10 22:00:28,671 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28    Starting to launch local task to process map join;      maximum memory = 239075328
+-- 2026-09-10 22:00:28,671 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28,671 INFO  [main] mr.MapredLocalTask (SessionState.java:printInfo(1227)) - 2026-09-10 22:00:28      Starting to launch local task to process map join;      maximum memory = 239075328
+-- 2026-09-10 22:00:28,821 INFO  [main] mr.MapredLocalTask (MapredLocalTask.java:initializeOperators(496)) - fetchoperator for $hdt$_1:c created
+-- 2026-09-10 22:00:28,821 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28,821 INFO  [main] exec.TableScanOperator (Operator.java:initialize(344)) - Initializing operator TS[2]
+-- 2026-09-10 22:00:28,821 INFO  [main] exec.SelectOperator (Operator.java:initialize(344)) - Initializing operator SEL[3]
+-- 2026-09-10 22:00:28,830 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28,830 INFO  [main] exec.SelectOperator (SelectOperator.java:initializeOp(73)) - SELECT struct<customer_id:int,name:string,cpf:string,email:string,segment:string,credit_score:int,created_at:date>
+-- 2026-09-10 22:00:28,830 INFO  [main] exec.HashTableSinkOperator (Operator.java:initialize(344)) - Initializing operator HASHTABLESINK[17]
+-- 2026-09-10 22:00:28,832 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28,831 INFO  [main] mapjoin.MapJoinMemoryExhaustionHandler (MapJoinMemoryExhaustionHandler.java:<init>(61)) - JVM Max Heap Size: 239075328
+-- 2026-09-10 22:00:28,880 INFO  [main] persistence.HashMapWrapper (HashMapWrapper.java:calculateTableSize(97)) - Key count from statistics is -1; setting map size to 100000
+-- 2026-09-10 22:00:28,881 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:28,881 INFO  [main] mr.MapredLocalTask (MapredLocalTask.java:initializeOperators(516)) - fetchoperator for $hdt$_1:c initialized
+-- 2026-09-10 22:00:31,218 INFO  [main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.input.dir is deprecated. Instead, use mapreduce.input.fileinputformat.inputdir
+-- 2026-09-10 22:00:31,515 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:31,514 INFO  [main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 22:00:32,773 INFO  [main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.task.id is deprecated. Instead, use mapreduce.task.attempt.id
+-- 2026-09-10 22:00:32,967 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(125)) - at row 0. reading next block
+-- 2026-09-10 22:00:32,967 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:32,967 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:initialize(211)) - RecordReader initialized will read a total of 9993 records.
+-- 2026-09-10 22:00:33,060 INFO  [main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(134)) - block read in memory in 93 ms. row count = 9993
+-- 2026-09-10 22:00:33,505 INFO  [main] exec.SelectOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_SEL_3:9993, RECORDS_OUT_INTERMEDIATE:0,
+-- 2026-09-10 22:00:33,505 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:33,505 INFO  [main] exec.TableScanOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_TS_2:9993,
+-- 2026-09-10 22:00:33,505 INFO  [main] exec.HashTableSinkOperator (HashTableSinkOperator.java:flushToFile(293)) - Temp URI for side table: file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2
+-- 2026-09-10 22:00:33,507 INFO  [main] exec.HashTableSinkOperator (SessionState.java:printInfo(1227)) - 2026-09-10 22:00:33       Dump the side-table for tag: 1 with group count: 9993 into file: file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/MapJoin-mapfile01--.hashtable
+-- 2026-09-10 22:00:33,507 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) -
+-- 2026-09-10 22:00:33     Dump the side-table for tag: 1 with group count: 9993 into file: file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/MapJoin-mapfile01--.hashtable2026-09-10 22:00:33   Uploaded 1 File to: file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/MapJoin-mapfile01--.hashtable (200711 bytes)
+-- 2026-09-10 22:00:33,675 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:33,674 INFO  [main] exec.HashTableSinkOperator (SessionState.java:printInfo(1227)) - 2026-09-10 22:00:33      Uploaded 1 File to: file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/MapJoin-mapfile01--.hashtable (200711 bytes)
+-- 2026-09-10 22:00:33,682 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stdout] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:33,675 INFO  [main] exec.HashTableSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_HASHTABLESINK_17:0, RECORDS_OUT_INTERMEDIATE:0,
+-- 2026-09-10 22:00:33,676 INFO  [main] mr.MapredLocalTask (SessionState.java:printInfo(1227)) - 2026-09-10 22:00:33      End of local task; Time Taken: 5.005 sec.
+-- 2026-09-10 22:00:33,676 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main-LocalTask-MAPREDLOCAL-stderr] mr.MapredLocalTask (LogRedirector.java:run(65)) - 2026-09-10 22:00:33    End of local task; Time Taken: 5.005 sec.
+-- Execution completed successfully
+-- 2026-09-10 22:01:00,633 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Execution completed successfully
+-- MapredLocal task succeeded
+-- 2026-09-10 22:01:00,636 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - MapredLocal task succeeded
+-- 2026-09-10 22:01:00,638 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.MapredLocalTask (MapredLocalTask.java:executeInChildVM(359)) - Execution completed successfully
+-- Launching Job 1 out of 1
+-- 2026-09-10 22:01:00,942 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 1
+-- 2026-09-10 22:01:00,958 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-2:MAPRED] in serial mode
+-- 2026-09-10 22:01:00,972 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:estimateNumberOfReducers(3136)) - BytesPerReducer=256000000 maxReducers=1009 totalInputFileSize=1599533
+-- Number of reduce tasks not specified. Estimated from input data size: 1
+-- 2026-09-10 22:01:00,974 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks not specified. Estimated from input data size: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-10 22:01:00,977 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-10 22:01:00,980 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-10 22:01:00,987 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-10 22:01:00,990 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-10 22:01:00,992 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:01:00,995 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:01:00,998 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 22:01:01,026 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-10 22:01:01,257 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(343)) - Archive 1 hash table files to file:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/Stage-2.tar.gz
+-- 2026-09-10 22:01:01,259 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.submit.replication is deprecated. Instead, use mapreduce.client.submit.file.replication
+-- 2026-09-10 22:01:01,981 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(350)) - Upload 1 archive file  fromfile:/tmp/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-local-10005/HashTable-Stage-2/Stage-2.tar.gz to: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10006/HashTable-Stage-2/Stage-2.tar.gz
+-- 2026-09-10 22:01:02,009 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(355)) - Add 1 archive file to distributed cache. Archive file: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10006/HashTable-Stage-2/Stage-2.tar.gz
+-- 2026-09-10 22:01:02,012 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias $hdt$_0:t
+-- 2026-09-10 22:01:02,015 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/hive/warehouse/bronze_transactions
+-- 2026-09-10 22:01:02,022 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1
+-- 2026-09-10 22:01:02,048 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-10 22:01:02,137 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 10.15KB
+-- 2026-09-10 22:01:02,151 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-10 22:01:02,233 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 8.96KB
+-- 2026-09-10 22:01:02,624 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:01:03,681 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:01:03,695 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10010/330a9235-aeb8-4e30-9627-8cbd98416d4c/map.xml
+-- 2026-09-10 22:01:03,696 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10010/330a9235-aeb8-4e30-9627-8cbd98416d4c/reduce.xml
+-- 2026-09-10 22:01:04,281 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-10 22:01:04,341 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1789086404085_0002
+-- 2026-09-10 22:01:05,101 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_21-58-37_446_1472136146484357025-1/-mr-10010/330a9235-aeb8-4e30-9627-8cbd98416d4c/map.xml
+-- 2026-09-10 22:01:05,106 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-10 22:01:05,133 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/hive/warehouse/bronze_transactions; using filter path hdfs://localhost:9000/user/hive/warehouse/bronze_transactions
+-- 2026-09-10 22:01:05,238 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 1
+-- 2026-09-10 22:01:05,582 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-10 22:01:05,585 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-10 22:01:06,102 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-10 22:01:06,136 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - yarn.resourcemanager.system-metrics-publisher.enabled is deprecated. Instead, use yarn.system-metrics-publisher.enabled
+-- 2026-09-10 22:01:06,200 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1789086404085_0002
+-- 2026-09-10 22:01:06,203 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-10 22:01:06,944 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.Configuration (Configuration.java:getConfResourceAsInputStream(2854)) - resource-types.xml not found
+-- 2026-09-10 22:01:06,950 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] resource.ResourceUtils (ResourceUtils.java:addResourcesFileToConf(476)) - Unable to find 'resource-types.xml'.
+-- 2026-09-10 22:01:07,279 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1789086404085_0002
+-- 2026-09-10 22:01:07,474 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0002/
+-- Starting Job = job_1789086404085_0002, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0002/
+-- 2026-09-10 22:01:07,481 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1789086404085_0002, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0002/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0002
+-- 2026-09-10 22:01:07,484 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0002
+-- Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:01:24,486 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:01:24,640 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-10 22:01:24,622 Stage-2 map = 0%,  reduce = 0%
+-- 2026-09-10 22:01:24,645 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:01:24,622 Stage-2 map = 0%,  reduce = 0%
+-- 2026-09-10 22:01:44,124 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 17.23 sec
+-- 2026-09-10 22:01:44,125 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:01:44,124 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 17.23 sec
+-- 2026-09-10 22:02:06,685 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 22.65 sec
+-- 2026-09-10 22:02:06,686 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:02:06,685 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 22.65 sec
+-- MapReduce Total cumulative CPU time: 22 seconds 650 msec
+-- 2026-09-10 22:02:08,821 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 22 seconds 650 msec
+-- Ended Job = job_1789086404085_0002
+-- 2026-09-10 22:02:08,931 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1789086404085_0002
+-- MapReduce Jobs Launched:
+-- 2026-09-10 22:02:09,113 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 22.65 sec   HDFS Read: 232964 HDFS Write: 87 SUCCESS
+-- 2026-09-10 22:02:09,117 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 22.65 sec   HDFS Read: 232964 HDFS Write: 87 SUCCESS
+-- Total MapReduce CPU Time Spent: 22 seconds 650 msec
+-- 2026-09-10 22:02:09,120 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 22 seconds 650 msec
+-- 2026-09-10 22:02:09,122 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910215837_95dd5476-9720-426d-a7ea-60e26a7b9263); Time taken: 210.451 seconds
+-- OK
+-- 2026-09-10 22:02:09,125 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 22:02:09,126 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:02:09,194 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.input.dir is deprecated. Instead, use mapreduce.input.fileinputformat.inputdir
+-- 2026-09-10 22:02:09,207 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 22:02:09,426 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_25:0,
+-- Time taken: 211.715 seconds
+-- 2026-09-10 22:02:09,446 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 211.715 seconds
+-- 2026-09-10 22:02:09,448 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:02:09,451 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+
+```sql
+SELECT customer_id FROM raw_customers WHERE customer_id IN (/* IDs encontrados acima */);
+```
+
+-- hive> SELECT customer_id FROM raw_customers WHERE customer_id IN (/* IDs encontrados acima */);
+-- 2026-09-10 22:05:26,015 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:05:26,016 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 22:05:26,018 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910220526_6d800d78-ad2f-4335-b3f0-ae856e2e5b3e): SELECT customer_id FROM raw_customers WHERE customer_id IN (/* IDs encontrados acima */)
+-- NoViableAltException(374@[592:1: precedenceSimilarExpressionIn[CommonTree t] : ( ( subQueryExpression )=> subQueryExpression -> ^( TOK_SUBQUERY_EXPR ^( TOK_SUBQUERY_OP KW_IN ) subQueryExpression ) |expr= expressionsInParenthesis[false, false] -> ^( TOK_FUNCTION Identifier["in"] ) );])
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser$DFA52.specialStateTransition(HiveParser_IdentifiersParser.java:36124)
+--         at org.antlr.runtime.DFA.predict(DFA.java:80)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceSimilarExpressionIn(HiveParser_IdentifiersParser.java:9722)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceSimilarExpressionAtom(HiveParser_IdentifiersParser.java:9502)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceSimilarExpressionPart(HiveParser_IdentifiersParser.java:9352)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceSimilarExpressionMain(HiveParser_IdentifiersParser.java:9156)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceSimilarExpression(HiveParser_IdentifiersParser.java:9040)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceEqualExpression(HiveParser_IdentifiersParser.java:10254)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceNotExpression(HiveParser_IdentifiersParser.java:10541)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceAndExpression(HiveParser_IdentifiersParser.java:10650)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.precedenceOrExpression(HiveParser_IdentifiersParser.java:10791)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_IdentifiersParser.expression(HiveParser_IdentifiersParser.java:6870)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.expression(HiveParser.java:45188)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_FromClauseParser.searchCondition(HiveParser_FromClauseParser.java:5986)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser_FromClauseParser.whereClause(HiveParser_FromClauseParser.java:5904)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.whereClause(HiveParser.java:45076)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.atomSelectStatement(HiveParser.java:39812)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.selectStatement(HiveParser.java:40044)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.regularBody(HiveParser.java:39690)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.queryStatementExpressionBody(HiveParser.java:38900)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.queryStatementExpression(HiveParser.java:38788)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.execStatement(HiveParser.java:2396)
+--         at org.apache.hadoop.hive.ql.parse.HiveParser.statement(HiveParser.java:1420)
+--         at org.apache.hadoop.hive.ql.parse.ParseDriver.parse(ParseDriver.java:220)
+--         at org.apache.hadoop.hive.ql.parse.ParseUtils.parse(ParseUtils.java:74)
+--         at org.apache.hadoop.hive.ql.parse.ParseUtils.parse(ParseUtils.java:67)
+--         at org.apache.hadoop.hive.ql.Driver.compile(Driver.java:616)
+--         at org.apache.hadoop.hive.ql.Driver.compileInternal(Driver.java:1826)
+--         at org.apache.hadoop.hive.ql.Driver.compileAndRespond(Driver.java:1773)
+--         at org.apache.hadoop.hive.ql.Driver.compileAndRespond(Driver.java:1768)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.compileAndRespond(ReExecDriver.java:126)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:214)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLocalCmd(CliDriver.java:239)
+--         at org.apache.hadoop.hive.cli.CliDriver.processCmd(CliDriver.java:188)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLine(CliDriver.java:402)
+--         at org.apache.hadoop.hive.cli.CliDriver.executeDriver(CliDriver.java:821)
+--         at org.apache.hadoop.hive.cli.CliDriver.run(CliDriver.java:759)
+--         at org.apache.hadoop.hive.cli.CliDriver.main(CliDriver.java:683)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.util.RunJar.run(RunJar.java:328)
+--         at org.apache.hadoop.util.RunJar.main(RunJar.java:241)
+-- FAILED: ParseException line 1:87 cannot recognize input near '(' ')' '<EOF>' in expression specification
+-- 2026-09-10 22:05:26,220 ERROR [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printError(1250)) - FAILED: ParseException line 1:87 cannot recognize input near '(' ')' '<EOF>' in expression specification
+-- org.apache.hadoop.hive.ql.parse.ParseException: line 1:87 cannot recognize input near '(' ')' '<EOF>' in expression specification
+--         at org.apache.hadoop.hive.ql.parse.ParseDriver.parse(ParseDriver.java:223)
+--         at org.apache.hadoop.hive.ql.parse.ParseUtils.parse(ParseUtils.java:74)
+--         at org.apache.hadoop.hive.ql.parse.ParseUtils.parse(ParseUtils.java:67)
+--         at org.apache.hadoop.hive.ql.Driver.compile(Driver.java:616)
+--         at org.apache.hadoop.hive.ql.Driver.compileInternal(Driver.java:1826)
+--         at org.apache.hadoop.hive.ql.Driver.compileAndRespond(Driver.java:1773)
+--         at org.apache.hadoop.hive.ql.Driver.compileAndRespond(Driver.java:1768)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.compileAndRespond(ReExecDriver.java:126)
+--         at org.apache.hadoop.hive.ql.reexec.ReExecDriver.run(ReExecDriver.java:214)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLocalCmd(CliDriver.java:239)
+--         at org.apache.hadoop.hive.cli.CliDriver.processCmd(CliDriver.java:188)
+--         at org.apache.hadoop.hive.cli.CliDriver.processLine(CliDriver.java:402)
+--         at org.apache.hadoop.hive.cli.CliDriver.executeDriver(CliDriver.java:821)
+--         at org.apache.hadoop.hive.cli.CliDriver.run(CliDriver.java:759)
+--         at org.apache.hadoop.hive.cli.CliDriver.main(CliDriver.java:683)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+--         at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+--         at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+--         at java.lang.reflect.Method.invoke(Method.java:498)
+--         at org.apache.hadoop.util.RunJar.run(RunJar.java:328)
+--         at org.apache.hadoop.util.RunJar.main(RunJar.java:241)
+
+-- 2026-09-10 22:05:26,234 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910220526_6d800d78-ad2f-4335-b3f0-ae856e2e5b3e); Time taken: 0.216 seconds
+-- 2026-09-10 22:05:26,235 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:05:26,236 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:05:26,237 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+-- ### Passo 3 — Garantir que todo mundo tem segmento
+
+```sql
+SELECT COUNT(*) FROM silver_transactions WHERE segment IS NULL;
+```
+
+-- hive> SELECT COUNT(*) FROM silver_transactions WHERE segment IS NULL;
+-- 2026-09-10 22:11:05,777 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:11:05,778 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 22:11:05,781 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857): SELECT COUNT(*) FROM silver_transactions WHERE segment IS NULL
+-- 2026-09-10 22:11:05,830 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:11:05,831 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 22:11:05,835 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 22:11:05,836 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:11:05,837 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,838 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,851 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:11:05,852 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:11:05,864 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1
+-- 2026-09-10 22:11:05,865 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 22:11:05,870 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,871 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,875 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,876 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,879 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,880 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,882 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,883 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:05,885 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:11:05,887 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:11:05,991 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 22:11:05,993 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 22:11:05,998 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:11:06,000 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:11:06,004 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:11:06,005 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:11:06,013 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:11:06,015 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:06,018 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:11:06,034 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:11:06,035 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:11:06,039 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1
+-- 2026-09-10 22:11:06,041 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1/-mr-10001/.hive-staging_hive_2026-09-10_22-11-05_809_1400004121007305628-1
+-- 2026-09-10 22:11:06,046 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 22:11:06,047 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(7)
+-- 2026-09-10 22:11:06,050 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(6)
+-- 2026-09-10 22:11:06,051 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(5)
+-- 2026-09-10 22:11:06,052 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(4)
+-- 2026-09-10 22:11:06,053 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(3)
+-- 2026-09-10 22:11:06,054 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(2)
+-- 2026-09-10 22:11:06,055 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(450)) - Processing for FIL(1)
+-- 2026-09-10 22:11:06,084 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 22:11:06,092 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 4 oldColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 22:11:06,093 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 4 newColExprMap: {VALUE._col0=Column[_col0]}
+-- 2026-09-10 22:11:06,118 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-10 22:11:06,120 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 22:11:06,121 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-10 22:11:06,125 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateGroupByOperator(2688)) - Vector GROUP BY operator will use processing mode HASH
+-- 2026-09-10 22:11:06,148 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-10 22:11:06,149 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-10 22:11:06,152 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-10 22:11:06,155 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vectorized.input.format IS true]
+-- 2026-09-10 22:11:06,156 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 22:11:06,157 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-10 22:11:06,158 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-10 22:11:06,159 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 1
+-- 2026-09-10 22:11:06,160 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-10 22:11:06,161 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-10 22:11:06,162 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 22:11:06,163 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14797)) - Not eligible for results caching - query contains non-transactional tables [silver_transactions]
+-- 2026-09-10 22:11:06,164 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 22:11:06,165 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:_c0, type:bigint, comment:null)], properties:null)
+-- 2026-09-10 22:11:06,167 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[13]
+-- 2026-09-10 22:11:06,170 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857); Time taken: 0.389 seconds
+-- 2026-09-10 22:11:06,172 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 22:11:06,173 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:11:06,174 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857): SELECT COUNT(*) FROM silver_transactions WHERE segment IS NULL
+-- 2026-09-10 22:11:06,175 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857
+-- 2026-09-10 22:11:06,176 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857
+-- Total jobs = 1
+-- 2026-09-10 22:11:06,178 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 1
+-- Launching Job 1 out of 1
+-- 2026-09-10 22:11:06,180 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 1
+-- 2026-09-10 22:11:06,187 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-1:MAPRED] in serial mode
+-- Number of reduce tasks determined at compile time: 1
+-- 2026-09-10 22:11:06,188 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks determined at compile time: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-10 22:11:06,190 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-10 22:11:06,191 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-10 22:11:06,192 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-10 22:11:06,193 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-10 22:11:06,195 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:11:06,196 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:11:06,196 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1
+-- 2026-09-10 22:11:06,200 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-10 22:11:06,201 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias silver_transactions
+-- 2026-09-10 22:11:06,203 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/hive/warehouse/silver_transactions
+-- 2026-09-10 22:11:06,205 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1
+-- 2026-09-10 22:11:06,227 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-10 22:11:06,667 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 8.57KB
+-- 2026-09-10 22:11:06,682 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-10 22:11:06,770 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 8.08KB
+-- 2026-09-10 22:11:06,805 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:11:06,833 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:11:06,835 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1/-mr-10005/1f3b6702-fb58-4978-80ea-f668eaf0c1bf/map.xml
+-- 2026-09-10 22:11:06,837 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1/-mr-10005/1f3b6702-fb58-4978-80ea-f668eaf0c1bf/reduce.xml
+-- 2026-09-10 22:11:06,918 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-10 22:11:06,932 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1789086404085_0003
+-- 2026-09-10 22:11:07,911 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-11-05_809_1400004121007305628-1/-mr-10005/1f3b6702-fb58-4978-80ea-f668eaf0c1bf/map.xml
+-- 2026-09-10 22:11:07,913 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-10 22:11:07,918 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/hive/warehouse/silver_transactions; using filter path hdfs://localhost:9000/user/hive/warehouse/silver_transactions
+-- 2026-09-10 22:11:07,924 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 1
+-- 2026-09-10 22:11:07,926 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-10 22:11:07,927 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-10 22:11:08,214 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-10 22:11:08,747 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1789086404085_0003
+-- 2026-09-10 22:11:08,753 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-10 22:11:08,866 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1789086404085_0003
+-- 2026-09-10 22:11:08,901 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0003/
+-- Starting Job = job_1789086404085_0003, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0003/
+-- 2026-09-10 22:11:08,907 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1789086404085_0003, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0003/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0003
+-- 2026-09-10 22:11:08,913 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0003
+-- Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:11:24,442 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:11:24,512 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-10 22:11:24,510 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-10 22:11:24,517 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:11:24,510 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-10 22:11:50,415 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 18.36 sec
+-- 2026-09-10 22:11:50,416 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:11:50,415 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 18.36 sec
+-- 2026-09-10 22:12:04,347 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 24.44 sec
+-- 2026-09-10 22:12:04,348 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:12:04,347 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 24.44 sec
+-- MapReduce Total cumulative CPU time: 24 seconds 440 msec
+-- 2026-09-10 22:12:05,437 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 24 seconds 440 msec
+-- Ended Job = job_1789086404085_0003
+-- 2026-09-10 22:12:05,461 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1789086404085_0003
+-- MapReduce Jobs Launched:
+-- 2026-09-10 22:12:05,530 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 24.44 sec   HDFS Read: 45689 HDFS Write: 101 SUCCESS
+-- 2026-09-10 22:12:05,533 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 24.44 sec   HDFS Read: 45689 HDFS Write: 101 SUCCESS
+-- Total MapReduce CPU Time Spent: 24 seconds 440 msec
+-- 2026-09-10 22:12:05,536 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 24 seconds 440 msec
+-- 2026-09-10 22:12:05,538 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910221105_7d92992b-fa51-49a0-8d49-481f08318857); Time taken: 59.356 seconds
+-- OK
+-- 2026-09-10 22:12:05,543 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 22:12:05,547 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:12:05,560 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 22:12:05,596 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_13:1,
+-- 0
+-- Time taken: 59.768 seconds, Fetched: 1 row(s)
+-- 2026-09-10 22:12:05,607 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 59.768 seconds, Fetched: 1 row(s)
+-- 2026-09-10 22:12:05,609 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:12:05,611 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+
+-- ### Passo 4 — Espiar as colunas derivadas
+
+```sql
+SELECT amount, amount_band, year, month, day, day_of_week
+FROM silver_transactions
+LIMIT 10;
+```
+
+-- hive> SELECT amount, amount_band, year, month, day, day_of_week
+-- FROM silver_transactions
+-- LIMIT 10;    >     >
+-- 2026-09-10 22:14:54,229 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:14:54,230 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 22:14:54,232 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910221454_4ccdc58d-ebf9-41c6-8092-3fa472a575a5): SELECT amount, amount_band, year, month, day, day_of_week
+-- FROM silver_transactions
+-- LIMIT 10
+-- 2026-09-10 22:14:54,264 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:14:54,264 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 22:14:54,266 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 22:14:54,266 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:14:54,267 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,268 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,279 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:14:54,280 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:14:54,307 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-14-54_262_101248398734987044-1
+-- 2026-09-10 22:14:54,309 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 22:14:54,315 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,316 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,318 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,319 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,323 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,324 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,326 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,327 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,329 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:14:54,330 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:14:54,398 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 22:14:54,399 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 22:14:54,403 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:14:54,404 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:14:54,407 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:14:54,408 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:14:54,413 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:14:54,414 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,416 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:14:54,428 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:14:54,429 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:14:54,434 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-14-54_262_101248398734987044-1
+-- 2026-09-10 22:14:54,436 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-14-54_262_101248398734987044-1/-mr-10001/.hive-staging_hive_2026-09-10_22-14-54_262_101248398734987044-1
+-- 2026-09-10 22:14:54,440 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 22:14:54,441 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(3)
+-- 2026-09-10 22:14:54,442 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-10 22:14:54,443 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 22:14:54,471 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 22:14:54,472 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14777)) - Not eligible for results caching - no mr/tez/spark jobs
+-- 2026-09-10 22:14:54,475 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 22:14:54,476 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:amount, type:float, comment:null), FieldSchema(name:amount_band, type:string, comment:null), FieldSchema(name:year, type:int, comment:null), FieldSchema(name:month, type:int, comment:null), FieldSchema(name:day, type:int, comment:null), FieldSchema(name:day_of_week, type:int, comment:null)], properties:null)
+-- 2026-09-10 22:14:54,514 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.TableScanOperator (Operator.java:initialize(344)) - Initializing operator TS[0]
+-- 2026-09-10 22:14:54,519 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SelectOperator (Operator.java:initialize(344)) - Initializing operator SEL[1]
+-- 2026-09-10 22:14:54,558 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SelectOperator (SelectOperator.java:initializeOp(73)) - SELECT struct<transaction_id:int,customer_id:int,amount:float,transaction_type:string,status:string,risk_score:float,is_fraud:boolean,ts:timestamp,segment:string,credit_score:int,year:int,month:int,day:int,day_of_week:int,amount_band:string>
+-- 2026-09-10 22:14:54,564 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.LimitOperator (Operator.java:initialize(344)) - Initializing operator LIM[2]
+-- 2026-09-10 22:14:54,569 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.task.is.map is deprecated. Instead, use mapreduce.task.ismap
+-- 2026-09-10 22:14:54,572 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[4]
+-- 2026-09-10 22:14:54,576 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910221454_4ccdc58d-ebf9-41c6-8092-3fa472a575a5); Time taken: 0.344 seconds
+-- 2026-09-10 22:14:54,583 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 22:14:54,586 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:14:54,589 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910221454_4ccdc58d-ebf9-41c6-8092-3fa472a575a5): SELECT amount, amount_band, year, month, day, day_of_week
+-- FROM silver_transactions
+-- LIMIT 10
+-- 2026-09-10 22:14:54,603 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910221454_4ccdc58d-ebf9-41c6-8092-3fa472a575a5); Time taken: 0.014 seconds
+-- OK
+-- 2026-09-10 22:14:54,608 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 22:14:54,614 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:14:54,636 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 22:14:55,151 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] Configuration.deprecation (Configuration.java:logDeprecation(1442)) - mapred.task.id is deprecated. Instead, use mapreduce.task.attempt.id
+-- 2026-09-10 22:14:55,237 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:initialize(211)) - RecordReader initialized will read a total of 99996 records.
+-- 2026-09-10 22:14:55,238 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(125)) - at row 0. reading next block
+-- 2026-09-10 22:14:55,338 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] hadoop.InternalParquetRecordReader (InternalParquetRecordReader.java:checkRead(134)) - block read in memory in 100 ms. row count = 99996
+-- 822.086 medio   2023    4       22      7
+-- 93.9353 baixo   2023    3       28      3
+-- 40.2107 baixo   2023    1       20      6
+-- 67.0612 baixo   2024    6       23      1
+-- 17.8488 baixo   2023    7       28      6
+-- 140.574 medio   2024    3       18      2
+-- 48.9623 baixo   2023    1       24      3
+-- 10.0    baixo   2024    12      6       6
+-- 13.3099 baixo   2023    6       24      7
+-- 164.773 medio   2023    4       25      3
+-- 2026-09-10 22:14:55,565 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.TableScanOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_TS_0:10,
+-- 2026-09-10 22:14:55,566 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SelectOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_SEL_1:10,
+-- 2026-09-10 22:14:55,566 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.LimitOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIM_2:10,
+-- 2026-09-10 22:14:55,567 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_OPERATOR_LIST_SINK_4:10, RECORDS_OUT_INTERMEDIATE:0,
+-- Time taken: 0.386 seconds, Fetched: 10 row(s)
+-- 2026-09-10 22:14:55,572 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 0.386 seconds, Fetched: 10 row(s)
+-- 2026-09-10 22:14:55,573 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:14:55,574 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
+
+-- ### Passo 5 — Um primeiro cruzamento (prévia da Gold)
+
+```sql
+SELECT segment,
+       COUNT(*) AS transacoes,
+       ROUND(100.0 * SUM(CASE WHEN is_fraud THEN 1 ELSE 0 END) / COUNT(*), 2) AS taxa_fraude_pct
+FROM silver_transactions
+GROUP BY segment
+ORDER BY taxa_fraude_pct DESC;
+```
+
+-- hive> SELECT segment,
+--       >      COUNT(*) AS transacoes,
+--        ROUND(100.0 * SUM(CASE WHEN is_    > fraud THEN 1 ELSE 0 END) / COUNT(*), 2) AS taxa_fraude_pct
+-- FROM silver_transactions
+-- GROUP BY segment
+-- ORDER BY taxa_fraude_pct DESC;    >     >     >
+-- 2026-09-10 22:15:32,031 INFO  [main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:15:32,031 INFO  [main] session.SessionState (SessionState.java:updateThreadName(441)) - Updating thread name to a72e3552-b484-4a0e-a879-83afdb81fdfe main
+-- 2026-09-10 22:15:32,035 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(554)) - Compiling command(queryId=palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b): SELECT segment,
+--        COUNT(*) AS transacoes,
+--        ROUND(100.0 * SUM(CASE WHEN is_fraud THEN 1 ELSE 0 END) / COUNT(*), 2) AS taxa_fraude_pct
+-- FROM silver_transactions
+-- GROUP BY segment
+-- ORDER BY taxa_fraude_pct DESC
+-- 2026-09-10 22:15:32,070 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:15:32,071 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12123)) - Starting Semantic Analysis
+-- 2026-09-10 22:15:32,103 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12029)) - Completed phase 1 of Semantic Analysis
+-- 2026-09-10 22:15:32,104 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:15:32,108 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,109 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,119 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:15:32,120 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:15:32,132 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,133 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:genResolvedParseTree(12034)) - Completed getting MetaData in Semantic Analysis
+-- 2026-09-10 22:15:32,139 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,139 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_not_null_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,142 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,143 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,147 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,148 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_primary_keys : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,150 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,151 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_unique_constraints : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,153 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:15:32,154 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_foreign_keys : parentdb=null parenttbl=null foreigndb=default foreigntbl=silver_transactions
+-- 2026-09-10 22:15:32,306 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_databases: @hive#
+-- 2026-09-10 22:15:32,307 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_databases: @hive#
+-- 2026-09-10 22:15:32,312 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:15:32,313 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#avaliacao_techpay
+-- 2026-09-10 22:15:32,316 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:15:32,316 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_materialized_views_for_rewriting: db=@hive#default
+-- 2026-09-10 22:15:32,322 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:15:32,323 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:15:32,324 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2100)) - Get metadata for source tables
+-- 2026-09-10 22:15:32,325 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] metastore.HiveMetaStore (HiveMetaStore.java:logInfo(897)) - 0: get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,326 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] HiveMetaStore.audit (HiveMetaStore.java:logAuditEvent(349)) - ugi=palomamusa  ip=unknown-ip-addr      cmd=get_table : tbl=hive.default.silver_transactions
+-- 2026-09-10 22:15:32,337 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2224)) - Get metadata for subqueries
+-- 2026-09-10 22:15:32,338 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:15:32,339 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:getMetaData(2248)) - Get metadata for destination tables
+-- 2026-09-10 22:15:32,341 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,346 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] common.FileUtils (FileUtils.java:mkdir(580)) - Creating directory if it doesn't exist: hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10001/.hive-staging_hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,351 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (CalcitePlanner.java:genOPTree(518)) - CBO Succeeded; optimized logical plan.
+-- 2026-09-10 22:15:32,352 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for FS(9)
+-- 2026-09-10 22:15:32,352 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(8)
+-- 2026-09-10 22:15:32,353 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(7)
+-- 2026-09-10 22:15:32,354 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(6)
+-- 2026-09-10 22:15:32,356 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(5)
+-- 2026-09-10 22:15:32,356 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for RS(4)
+-- 2026-09-10 22:15:32,357 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for GBY(3)
+-- 2026-09-10 22:15:32,357 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(2)
+-- 2026-09-10 22:15:32,358 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(744)) - Processing for SEL(1)
+-- 2026-09-10 22:15:32,359 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ppd.OpProcFactory (OpProcFactory.java:process(417)) - Processing for TS(0)
+-- 2026-09-10 22:15:32,360 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 7 oldColExprMap: {VALUE._col0=Column[_col0], VALUE._col1=Column[_col1], KEY.reducesinkkey0=Column[_col2]}
+-- 2026-09-10 22:15:32,361 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 7 newColExprMap: {VALUE._col0=Column[_col0], VALUE._col1=Column[_col1], KEY.reducesinkkey0=Column[_col2]}
+-- 2026-09-10 22:15:32,365 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(901)) - RS 4 oldColExprMap: {KEY._col0=Column[_col0], VALUE._col0=Column[_col1], VALUE._col1=Column[_col2]}
+-- 2026-09-10 22:15:32,366 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] optimizer.ColumnPrunerProcFactory (ColumnPrunerProcFactory.java:pruneReduceSinkOperator(950)) - RS 4 newColExprMap: {KEY._col0=Column[_col0], VALUE._col0=Column[_col1], VALUE._col1=Column[_col2]}
+-- 2026-09-10 22:15:32,427 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,429 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-10 22:15:32,432 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.mapred.SequenceFileInputFormat]
+-- 2026-09-10 22:15:32,433 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 0)
+-- 2026-09-10 22:15:32,434 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-10 22:15:32,435 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-10 22:15:32,436 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 0
+-- 2026-09-10 22:15:32,437 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vector.serde.deserialize IS true]
+-- 2026-09-10 22:15:32,439 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.mapred.SequenceFileInputFormat]
+-- 2026-09-10 22:15:32,440 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-10 22:15:32,441 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-10 22:15:32,442 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 1
+-- 2026-09-10 22:15:32,443 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-10 22:15:32,446 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-10 22:15:32,447 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1849)) - Examining input format to see if vectorization is enabled.
+-- 2026-09-10 22:15:32,448 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapWork(1938)) - Vectorization is enabled for input format(s) [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 22:15:32,449 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateAndVectorizeMapOperators(1961)) - Validating and vectorizing MapWork... (vectorizedVertexNum 2)
+-- 2026-09-10 22:15:32,534 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:validateGroupByOperator(2688)) - Vector GROUP BY operator will use processing mode HASH
+-- 2026-09-10 22:15:32,537 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Map vectorization enabled: true
+-- 2026-09-10 22:15:32,538 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Map vectorized: true
+-- 2026-09-10 22:15:32,539 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Map vectorizedVertexNum: 2
+-- 2026-09-10 22:15:32,540 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1076)) - Map enabledConditionsMet: [hive.vectorized.use.vectorized.input.format IS true]
+-- 2026-09-10 22:15:32,541 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logMapWorkExplainVectorization(1085)) - Map inputFileFormatClassNameSet: [org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat]
+-- 2026-09-10 22:15:32,542 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1035)) - Reduce vectorization enabled: false
+-- 2026-09-10 22:15:32,543 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1037)) - Reduce vectorized: false
+-- 2026-09-10 22:15:32,544 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logExplainVectorization(1044)) - Reduce vectorizedVertexNum: 3
+-- 2026-09-10 22:15:32,545 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1096)) - Reducer hive.vectorized.execution.reduce.enabled: true
+-- 2026-09-10 22:15:32,547 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] physical.Vectorizer (Vectorizer.java:logReduceWorkExplainVectorization(1098)) - Reducer engine: mr
+-- 2026-09-10 22:15:32,548 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:analyzeInternal(12343)) - Completed plan generation
+-- 2026-09-10 22:15:32,551 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] parse.CalcitePlanner (SemanticAnalyzer.java:queryCanBeCached(14797)) - Not eligible for results caching - query contains non-transactional tables [silver_transactions]
+-- 2026-09-10 22:15:32,552 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(666)) - Semantic Analysis Completed (retrial = false)
+-- 2026-09-10 22:15:32,553 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:getSchema(374)) - Returning Hive schema: Schema(fieldSchemas:[FieldSchema(name:segment, type:string, comment:null), FieldSchema(name:transacoes, type:bigint, comment:null), FieldSchema(name:taxa_fraude_pct, type:decimal(26,2), comment:null)], properties:null)
+-- 2026-09-10 22:15:32,555 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:initialize(344)) - Initializing operator LIST_SINK[16]
+-- 2026-09-10 22:15:32,556 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:compile(781)) - Completed compiling command(queryId=palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b); Time taken: 0.522 seconds
+-- 2026-09-10 22:15:32,557 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] reexec.ReExecDriver (ReExecDriver.java:run(156)) - Execution #1 of query
+-- 2026-09-10 22:15:32,558 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:15:32,559 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2255)) - Executing command(queryId=palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b): SELECT segment,
+--        COUNT(*) AS transacoes,
+--        ROUND(100.0 * SUM(CASE WHEN is_fraud THEN 1 ELSE 0 END) / COUNT(*), 2) AS taxa_fraude_pct
+-- FROM silver_transactions
+-- GROUP BY segment
+-- ORDER BY taxa_fraude_pct DESC
+-- 2026-09-10 22:15:32,562 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:logMrWarning(2591)) - Hive-on-MR is deprecated in Hive 2 and may not be available in the future versions. Consider using a different execution engine (i.e. spark, tez) or using Hive 1.X releases.
+-- Query ID = palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b
+-- 2026-09-10 22:15:32,563 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Query ID = palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b
+-- Total jobs = 2
+-- 2026-09-10 22:15:32,568 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total jobs = 2
+-- Launching Job 1 out of 2
+-- 2026-09-10 22:15:32,569 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 1 out of 2
+-- 2026-09-10 22:15:32,573 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-1:MAPRED] in serial mode
+-- 2026-09-10 22:15:32,575 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputSummaryWithPool(2555)) - Cache Content Summary for hdfs://localhost:9000/user/hive/warehouse/silver_transactions length: 1942509 file count: 1  directory count: 1
+-- 2026-09-10 22:15:32,576 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:estimateNumberOfReducers(3136)) - BytesPerReducer=256000000 maxReducers=1009 totalInputFileSize=1942509
+-- Number of reduce tasks not specified. Estimated from input data size: 1
+-- 2026-09-10 22:15:32,578 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks not specified. Estimated from input data size: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-10 22:15:32,581 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-10 22:15:32,583 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-10 22:15:32,585 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-10 22:15:32,587 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-10 22:15:32,589 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:15:32,590 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:15:32,592 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,595 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-10 22:15:32,597 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias $hdt$_0:silver_transactions
+-- 2026-09-10 22:15:32,598 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/user/hive/warehouse/silver_transactions
+-- 2026-09-10 22:15:32,600 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:15:32,621 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-10 22:15:33,069 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 8.91KB
+-- 2026-09-10 22:15:33,073 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-10 22:15:33,104 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 8.93KB
+-- 2026-09-10 22:15:33,127 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:15:33,155 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:15:33,157 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10006/7de207c5-687e-4b03-83f0-71203b350d84/map.xml
+-- 2026-09-10 22:15:33,158 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10006/7de207c5-687e-4b03-83f0-71203b350d84/reduce.xml
+-- 2026-09-10 22:15:33,241 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-10 22:15:33,260 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1789086404085_0004
+-- 2026-09-10 22:15:34,130 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10006/7de207c5-687e-4b03-83f0-71203b350d84/map.xml
+-- 2026-09-10 22:15:34,135 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-10 22:15:34,144 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/user/hive/warehouse/silver_transactions; using filter path hdfs://localhost:9000/user/hive/warehouse/silver_transactions
+-- 2026-09-10 22:15:34,161 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 1
+-- 2026-09-10 22:15:34,165 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-10 22:15:34,170 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-10 22:15:35,136 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-10 22:15:37,608 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1789086404085_0004
+-- 2026-09-10 22:15:37,613 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-10 22:15:37,684 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1789086404085_0004
+-- 2026-09-10 22:15:37,700 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0004/
+-- Starting Job = job_1789086404085_0004, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0004/
+-- 2026-09-10 22:15:37,709 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1789086404085_0004, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0004/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0004
+-- 2026-09-10 22:15:37,717 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0004
+-- Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:15:54,298 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:15:54,365 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-10 22:15:54,363 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-10 22:15:54,369 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:15:54,363 Stage-1 map = 0%,  reduce = 0%
+-- 2026-09-10 22:16:18,237 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 18.37 sec
+-- 2026-09-10 22:16:18,238 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:16:18,237 Stage-1 map = 100%,  reduce = 0%, Cumulative CPU 18.37 sec
+-- 2026-09-10 22:16:32,132 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 24.29 sec
+-- 2026-09-10 22:16:32,133 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:16:32,132 Stage-1 map = 100%,  reduce = 100%, Cumulative CPU 24.29 sec
+-- MapReduce Total cumulative CPU time: 24 seconds 290 msec
+-- 2026-09-10 22:16:34,264 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 24 seconds 290 msec
+-- Ended Job = job_1789086404085_0004
+-- 2026-09-10 22:16:34,288 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1789086404085_0004
+-- Launching Job 2 out of 2
+-- 2026-09-10 22:16:34,438 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Launching Job 2 out of 2
+-- 2026-09-10 22:16:34,453 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:launchTask(2662)) - Starting task [Stage-2:MAPRED] in serial mode
+-- Number of reduce tasks determined at compile time: 1
+-- 2026-09-10 22:16:34,458 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Number of reduce tasks determined at compile time: 1
+-- In order to change the average load for a reducer (in bytes):
+-- 2026-09-10 22:16:34,467 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to change the average load for a reducer (in bytes):
+--   set hive.exec.reducers.bytes.per.reducer=<number>
+-- 2026-09-10 22:16:34,473 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.bytes.per.reducer=<number>
+-- In order to limit the maximum number of reducers:
+-- 2026-09-10 22:16:34,482 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to limit the maximum number of reducers:
+--   set hive.exec.reducers.max=<number>
+-- 2026-09-10 22:16:34,489 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set hive.exec.reducers.max=<number>
+-- In order to set a constant number of reducers:
+-- 2026-09-10 22:16:34,495 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - In order to set a constant number of reducers:
+--   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:16:34,503 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) -   set mapreduce.job.reduces=<number>
+-- 2026-09-10 22:16:34,506 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:16:34,518 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mr.ExecDriver (ExecDriver.java:execute(299)) - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+-- 2026-09-10 22:16:34,520 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3298)) - Processing alias hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10004
+-- 2026-09-10 22:16:34,524 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getInputPaths(3336)) - Adding 1 inputs; the first input is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10004
+-- 2026-09-10 22:16:34,528 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Context (Context.java:getMRScratchDir(548)) - New scratch dir is hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1
+-- 2026-09-10 22:16:34,537 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing MapWork using kryo
+-- 2026-09-10 22:16:34,589 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 3.41KB
+-- 2026-09-10 22:16:34,604 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.SerializationUtilities (SerializationUtilities.java:serializePlan(569)) - Serializing ReduceWork using kryo
+-- 2026-09-10 22:16:35,088 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:setBaseWork(633)) - Serialized plan (via FILE) - name: null size: 4.28KB
+-- 2026-09-10 22:16:35,151 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:16:35,202 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] client.DefaultNoHARMFailoverProxyProvider (DefaultNoHARMFailoverProxyProvider.java:init(64)) - Connecting to ResourceManager at /0.0.0.0:8032
+-- 2026-09-10 22:16:35,208 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10008/8bec737f-87a6-4258-8316-398454edb072/map.xml
+-- 2026-09-10 22:16:35,210 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10008/8bec737f-87a6-4258-8316-398454edb072/reduce.xml
+-- 2026-09-10 22:16:35,279 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:uploadResourcesInternal(149)) - Hadoop command-line option parsing not performed. Implement the Tool interface and execute your application with ToolRunner to remedy this.
+-- 2026-09-10 22:16:35,296 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobResourceUploader (JobResourceUploader.java:disableErasureCodingForPath(907)) - Disabling Erasure Coding for path: /tmp/hadoop-yarn/staging/palomamusa/.staging/job_1789086404085_0005
+-- 2026-09-10 22:16:36,427 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Utilities (Utilities.java:getBaseWork(429)) - PLAN PATH = hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10008/8bec737f-87a6-4258-8316-398454edb072/map.xml
+-- 2026-09-10 22:16:36,432 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getNonCombinablePathIndices(477)) - Total number of paths: 1, launching 1 threads to check non-combinable ones.
+-- 2026-09-10 22:16:36,442 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(413)) - CombineHiveInputSplit creating pool for hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10004; using filter path hdfs://localhost:9000/tmp/hive/palomamusa/a72e3552-b484-4a0e-a879-83afdb81fdfe/hive_2026-09-10_22-15-32_067_7846415399763739378-1/-mr-10004
+-- 2026-09-10 22:16:36,456 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] input.FileInputFormat (FileInputFormat.java:listStatus(300)) - Total input files to process : 1
+-- 2026-09-10 22:16:36,460 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getCombineSplits(467)) - number of splits 1
+-- 2026-09-10 22:16:36,463 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] io.CombineHiveInputFormat (CombineHiveInputFormat.java:getSplits(587)) - Number of all splits 1
+-- 2026-09-10 22:16:37,572 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:submitJobInternal(202)) - number of splits:1
+-- 2026-09-10 22:16:38,254 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(298)) - Submitting tokens for job: job_1789086404085_0005
+-- 2026-09-10 22:16:38,259 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.JobSubmitter (JobSubmitter.java:printTokens(299)) - Executing with tokens: []
+-- 2026-09-10 22:16:38,591 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] impl.YarnClientImpl (YarnClientImpl.java:submitApplication(338)) - Submitted application application_1789086404085_0005
+-- 2026-09-10 22:16:38,628 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Job (Job.java:submit(1682)) - The url to track the job: http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0005/
+-- Starting Job = job_1789086404085_0005, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0005/
+-- 2026-09-10 22:16:38,638 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Starting Job = job_1789086404085_0005, Tracking URL = http://DESKTOP-NJ8QT5E.localdomain:8088/proxy/application_1789086404085_0005/
+-- Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0005
+-- 2026-09-10 22:16:38,644 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Kill Command = /opt/hadoop/bin/mapred job  -kill job_1789086404085_0005
+-- Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:17:03,370 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Hadoop job information for Stage-2: number of mappers: 1; number of reducers: 1
+-- 2026-09-10 22:17:03,435 WARN  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapreduce.Counters (AbstractCounters.java:getGroup(235)) - Group org.apache.hadoop.mapred.Task$Counter is deprecated. Use org.apache.hadoop.mapreduce.TaskCounter instead
+-- 2026-09-10 22:17:03,435 Stage-2 map = 0%,  reduce = 0%
+-- 2026-09-10 22:17:03,440 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:17:03,435 Stage-2 map = 0%,  reduce = 0%
+-- 2026-09-10 22:17:17,471 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 11.83 sec
+-- 2026-09-10 22:17:17,472 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:17:17,471 Stage-2 map = 100%,  reduce = 0%, Cumulative CPU 11.83 sec
+-- 2026-09-10 22:17:28,153 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 17.42 sec
+-- 2026-09-10 22:17:28,154 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - 2026-09-10 22:17:28,153 Stage-2 map = 100%,  reduce = 100%, Cumulative CPU 17.42 sec
+-- MapReduce Total cumulative CPU time: 17 seconds 420 msec
+-- 2026-09-10 22:17:30,305 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - MapReduce Total cumulative CPU time: 17 seconds 420 msec
+-- Ended Job = job_1789086404085_0005
+-- 2026-09-10 22:17:30,328 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.Task (SessionState.java:printInfo(1227)) - Ended Job = job_1789086404085_0005
+-- MapReduce Jobs Launched:
+-- 2026-09-10 22:17:30,490 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - MapReduce Jobs Launched:
+-- Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 24.29 sec   HDFS Read: 59427 HDFS Write: 193 SUCCESS
+-- 2026-09-10 22:17:30,495 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-1: Map: 1  Reduce: 1   Cumulative CPU: 24.29 sec   HDFS Read: 59427 HDFS Write: 193 SUCCESS
+-- Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 17.42 sec   HDFS Read: 8283 HDFS Write: 182 SUCCESS
+-- 2026-09-10 22:17:30,504 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Stage-Stage-2: Map: 1  Reduce: 1   Cumulative CPU: 17.42 sec   HDFS Read: 8283 HDFS Write: 182 SUCCESS
+-- Total MapReduce CPU Time Spent: 41 seconds 710 msec
+-- 2026-09-10 22:17:30,510 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - Total MapReduce CPU Time Spent: 41 seconds 710 msec
+-- 2026-09-10 22:17:30,513 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:execute(2531)) - Completed executing command(queryId=palomamusa_20260910221532_cf116fc6-5462-4c11-af24-536d9f191d6b); Time taken: 117.93 seconds
+-- OK
+-- 2026-09-10 22:17:30,521 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (SessionState.java:printInfo(1227)) - OK
+-- 2026-09-10 22:17:30,525 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] ql.Driver (Driver.java:checkConcurrency(285)) - Concurrency mode is disabled, not creating a lock manager
+-- 2026-09-10 22:17:30,541 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] mapred.FileInputFormat (FileInputFormat.java:listStatus(266)) - Total input files to process : 1
+-- 2026-09-10 22:17:30,563 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] exec.ListSinkOperator (Operator.java:logStats(1038)) - RECORDS_OUT_INTERMEDIATE:0, RECORDS_OUT_OPERATOR_LIST_SINK_16:3,
+-- High-Risk       9154    7.70
+-- Standard        29687   2.21
+-- Premium 61155   0.77
+-- Time taken: 118.495 seconds, Fetched: 3 row(s)
+-- 2026-09-10 22:17:30,589 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] CliDriver (SessionState.java:printInfo(1227)) - Time taken: 118.495 seconds, Fetched: 3 row(s)
+-- 2026-09-10 22:17:30,591 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] conf.HiveConf (HiveConf.java:getLogIdVar(5043)) - Using the default value passed in for log id: a72e3552-b484-4a0e-a879-83afdb81fdfe
+-- 2026-09-10 22:17:30,594 INFO  [a72e3552-b484-4a0e-a879-83afdb81fdfe main] session.SessionState (SessionState.java:resetThreadName(452)) - Resetting thread name to  main
