@@ -183,24 +183,22 @@
 
 ## Usando ROTA A — Cluster real
 
-### Opção 2 — CSV direto do Hive
+### Opção 1 — Sqoop export (Hive → MySQL)
 
 ```bash
-hive -e "SELECT * FROM gold_fraud_risk" | sed 's/[\t]/,/g' > fraud_risk_export.csv
-cat fraud_risk_export.csv
+# criar a tabela de destino no MySQL
+mysql -u root -p bigdata_course -e "
+CREATE TABLE fraud_risk_bi (
+  segment VARCHAR(50), total_transacoes INT, valor_total FLOAT,
+  ticket_medio FLOAT, qtd_fraudes INT, taxa_fraude_pct FLOAT, valor_em_risco FLOAT
+);"
+
+sqoop export \
+  --connect jdbc:mysql://localhost:3306/bigdata_course \
+  --username root --password SUASENHA \
+  --table fraud_risk_bi \
+  --export-dir /user/hive/warehouse/gold_fraud_risk \
+  --input-fields-terminated-by '\001' \
+  -m 1
 ```
 
-### Opção 3 — Spark lendo o Parquet e gravando via JDBC
-
-```python
-# pyspark
-df = spark.read.parquet("/user/hive/warehouse/gold_fraud_risk")
-df.show()
-
-df.write.jdbc(
-  url="jdbc:mysql://localhost:3306/bigdata_course",
-  table="fraud_risk_bi_spark",
-  mode="overwrite",
-  properties={"user": "root", "password": "SUASENHA"}
-)
-```
