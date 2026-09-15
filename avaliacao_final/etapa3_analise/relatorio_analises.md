@@ -5,7 +5,7 @@
 
 **Professor responsável:** Luiz Alexandre Moreira Barros
 
-**Aluno(a):** Paloma Musa Mendes Pereira
+**Alunas:** Paloma Musa Mendes Pereira e Larissa Rocha Fonteles Vieira
 
 **Link do repositório:** https://github.com/Paloma-Musa/bigdata-ciencia-de-dados-aplicadas-a-negocios-paloma-musa.git
 
