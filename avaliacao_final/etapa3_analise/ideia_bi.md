@@ -19,4 +19,4 @@ A partir dessas informações, o dashboard pode auxiliar na tomada de decisões 
 
 Além de apoiar a tomada de decisões, o responsável pelo dashboard deve acompanhar periodicamente os indicadores apresentados, utilizando os resultados para avaliar a necessidade de renovação ou ajuste das regras de verificação por canal ou categoria. Sendo assim, o dono do painel seria o gerente ou coordenador da área de risco, responsável por utilizar as informações apresentadas para orientar as ações de prevenção e monitoramento de fraudes.
 
-Os indicadores chaves
+Os indicadores, como taxa de fraude geral, tendência mensal, composição por categoria e detalhamento por período e faixa de crédito, foram escolhidos por permitirem identificar de forma mais direta onde o risco de fraude está concentrado. Dessa forma, é possível acompanhar o comportamento das fraudes por canal, categoria de estabelecimento e segmento de cliente, além de observar a existência de padrões temporais relacionados à ocorrência dessas fraudes.
